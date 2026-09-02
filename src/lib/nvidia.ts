@@ -23,6 +23,8 @@ export class NvidiaLabError extends Error {
       | "provider_auth_error"
       | "provider_request_rejected"
       | "model_unavailable"
+      | "provider_unavailable"
+      | "provider_timeout"
       | "provider_error"
       | "invalid_response",
     public readonly status: number,
@@ -153,6 +155,7 @@ export async function createLabArchitecture(input: LabRequest): Promise<LabArchi
     if (response.status === 400 || response.status === 422) {
       throw new NvidiaLabError("provider_request_rejected", 502);
     }
+    if (response.status >= 500) throw new NvidiaLabError("provider_unavailable", 502);
     if (!response.ok) throw new NvidiaLabError("provider_error", 502);
 
     const content = data.choices?.[0]?.message?.content?.trim();
@@ -161,6 +164,9 @@ export async function createLabArchitecture(input: LabRequest): Promise<LabArchi
     return parseArchitecture(content, input);
   } catch (error) {
     if (error instanceof NvidiaLabError) throw error;
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new NvidiaLabError("provider_timeout", 504);
+    }
     throw new NvidiaLabError("provider_error", 502);
   } finally {
     clearTimeout(timeout);
