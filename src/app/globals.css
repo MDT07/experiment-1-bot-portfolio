@@ -1335,9 +1335,7 @@ main {
     padding-bottom: 55px;
   }
 
-  .micro-footer span:nth-child(2) {
-    display: none;
-  }
+  .micro-footer span:nth-child(2) { display: inline; }
 }
 
 @media (prefers-reduced-motion: reduce) {

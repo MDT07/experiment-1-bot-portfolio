@@ -1,4 +1,10 @@
 import type { Metadata } from "next";
+import { notFound, redirect } from "next/navigation";
+import {
+  createStudioContext,
+  isStudioOwner,
+  isStudioSupabaseConfigured,
+} from "@/lib/supabase/context";
 import styles from "./OpsConsole.module.css";
 
 export const dynamic = "force-dynamic";
@@ -18,33 +24,71 @@ function gatewayLabel(): string {
   try {
     return new URL(value).host;
   } catch {
-    return "Configured target";
+    return "Invalid target";
   }
 }
 
-export default function OwnerOperationsPage() {
+function formatTimestamp(value: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "UTC",
+  }).format(new Date(value));
+}
+
+export default async function OwnerOperationsPage() {
+  if (!isStudioSupabaseConfigured()) notFound();
+
+  const { data: context } = await createStudioContext();
+  if (!context?.user) redirect("/auth/sign-in?next=/ops");
+  if (!isStudioOwner(context.user)) notFound();
+
+  const [projectsResult, usersResult, runsResult, recentRunsResult] = await Promise.all([
+    context.supabaseAdmin.from("studio_projects").select("id", { count: "exact", head: true }),
+    context.supabaseAdmin.from("studio_generation_entitlements").select("user_id", { count: "exact", head: true }),
+    context.supabaseAdmin.from("studio_generation_runs").select("id", { count: "exact", head: true }),
+    context.supabaseAdmin
+      .from("studio_generation_runs")
+      .select("id, operation, provider, model, status, error_code, duration_ms, created_at")
+      .order("created_at", { ascending: false })
+      .limit(8),
+  ]);
+
   const checks = [
-    { label: "NVIDIA server credential", ready: configured("NVIDIA_API_KEY") },
-    { label: "Public lab exposure", ready: process.env.AI_DEMO_PUBLIC === "true" },
-    { label: "Gateway target", ready: configured("OPENCLAW_GATEWAY_URL") },
-    { label: "Gateway service credential", ready: configured("OPENCLAW_GATEWAY_TOKEN") },
-    { label: "Owner authentication", ready: configured("ADMIN_USERNAME") && configured("ADMIN_PASSWORD") },
+    { label: "Public NIM provider", ready: configured("NVIDIA_API_KEY") },
+    { label: "Bot Studio exposure", ready: process.env.AI_DEMO_PUBLIC === "true" },
+    { label: "Supabase identity + RLS", ready: isStudioSupabaseConfigured() },
+    { label: "OpenClaw gateway target", ready: configured("OPENCLAW_GATEWAY_URL") },
+    { label: "OpenClaw service credential", ready: configured("OPENCLAW_GATEWAY_TOKEN") },
   ];
+
+  const recentRuns = recentRunsResult.data ?? [];
+  const queryFailed = [projectsResult, usersResult, runsResult, recentRunsResult].some((result) => result.error);
 
   return (
     <main className={styles.shell}>
       <header className={styles.header}>
         <div><span>E/S</span><b>OWNER OPERATIONS</b></div>
-        <p>PRIVATE CONTROL SURFACE / NOINDEX</p>
+        <div className={styles.headerActions}>
+          <p>{context.user.email} / NOINDEX</p>
+          <form action="/auth/sign-out" method="post"><button type="submit">Sign out</button></form>
+        </div>
       </header>
 
       <section className={styles.hero}>
-        <p>EXPERIMENT 01 / CONTROL PLANE</p>
-        <h1>Observe the system. Keep execution somewhere else.</h1>
+        <p>EXPERIMENT 01 / PRIVATE CONTROL PLANE</p>
+        <h1>Observe usage. Keep agent execution isolated.</h1>
         <div className={styles.heroMeta}>
           <span>Gateway target</span>
           <b>{gatewayLabel()}</b>
         </div>
+      </section>
+
+      <section className={styles.metrics} aria-label="Studio activity">
+        <article><span>PROJECTS</span><b>{projectsResult.count ?? "—"}</b></article>
+        <article><span>GUEST IDENTITIES</span><b>{usersResult.count ?? "—"}</b></article>
+        <article><span>MODEL RUNS</span><b>{runsResult.count ?? "—"}</b></article>
+        <article><span>PUBLIC LIMIT</span><b>1 + 5</b><small>build + preview messages</small></article>
       </section>
 
       <section className={styles.grid}>
@@ -64,33 +108,54 @@ export default function OwnerOperationsPage() {
         <article className={styles.statusPanel}>
           <header><span>02</span><h2>Runtime boundary</h2></header>
           <dl>
-            <div><dt>Public site</dt><dd>Vercel / stateless UI + bounded API</dd></div>
+            <div><dt>Public site</dt><dd>Vercel / bounded UI and API only</dd></div>
+            <div><dt>Guest identity</dt><dd>Supabase Auth / isolated by RLS</dd></div>
             <div><dt>Agent runtime</dt><dd>Dedicated OpenClaw profile / persistent host</dd></div>
-            <div><dt>Remote access</dt><dd>Tailscale Serve or Cloudflare Access</dd></div>
+            <div><dt>Owner model</dt><dd>Kimi Code / kimi-for-coding</dd></div>
             <div><dt>Write policy</dt><dd>Disabled until explicit human approval</dd></div>
           </dl>
         </article>
 
+        <article className={`${styles.statusPanel} ${styles.activity}`}>
+          <header><span>03</span><h2>Recent model activity</h2></header>
+          {queryFailed ? (
+            <p className={styles.notice}>One or more telemetry queries failed. No permissions were widened.</p>
+          ) : recentRuns.length ? (
+            <div className={styles.runTable} role="table" aria-label="Recent model activity">
+              {recentRuns.map((run) => (
+                <div role="row" key={run.id}>
+                  <span role="cell" data-status={run.status}>{run.status}</span>
+                  <b role="cell">{run.operation}</b>
+                  <p role="cell">{run.model}</p>
+                  <time role="cell" dateTime={run.created_at}>{formatTimestamp(run.created_at)} UTC</time>
+                  <small role="cell">{run.error_code || (run.duration_ms === null ? "pending" : `${run.duration_ms} ms`)}</small>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className={styles.notice}>No model runs have been recorded yet.</p>
+          )}
+        </article>
+
         <article className={styles.runbook}>
-          <header><span>03</span><h2>Isolated profile bootstrap</h2></header>
-          <pre><code>{`openclaw --profile experiment-1 onboard
-openclaw --profile experiment-1 config validate
+          <header><span>04</span><h2>Isolated gateway bootstrap</h2></header>
+          <pre><code>{`openclaw --profile experiment-1 config validate
 openclaw --profile experiment-1 security audit --deep
-openclaw --profile experiment-1 gateway run --bind loopback --tailscale serve`}</code></pre>
+openclaw --profile experiment-1 gateway run`}</code></pre>
           <p>
-            This profile resolves to a separate state/config directory. It must not inherit personal channels,
-            sessions, skills, plugins, or host-level execution permissions.
+            The owner profile uses a separate state directory and Kimi Code credential. Vercel shows control-plane
+            state; it does not host the persistent OpenClaw process.
           </p>
         </article>
 
         <article className={styles.runbook}>
-          <header><span>04</span><h2>Release conditions</h2></header>
+          <header><span>05</span><h2>Release conditions</h2></header>
           <ol>
-            <li>Pair only the owner account and a dedicated demo bot.</li>
-            <li>Use allowlists; reject unknown direct messages and every group by default.</li>
-            <li>Sandbox every agent and deny host exec, filesystem write, browser, cron, and gateway mutation.</li>
-            <li>Keep NVIDIA and channel credentials in the runtime secret provider.</li>
-            <li>Require a clean deep security audit before enabling the remote endpoint.</li>
+            <li>Pair only the owner account and a dedicated demo channel.</li>
+            <li>Reject unknown direct messages and all groups by default.</li>
+            <li>Deny host execution, filesystem write, browser, cron, and gateway mutation.</li>
+            <li>Keep model and channel credentials in the persistent runtime secret provider.</li>
+            <li>Require a clean deep security audit before remote access is enabled.</li>
           </ol>
         </article>
       </section>

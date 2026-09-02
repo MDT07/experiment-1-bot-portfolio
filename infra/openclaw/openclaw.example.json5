@@ -13,18 +13,20 @@
     },
   },
 
-  models: {
-    providers: {
-      nvidia: {
-        baseUrl: "https://integrate.api.nvidia.com/v1",
-        api: "openai-completions",
-      },
+  plugins: {
+    entries: {
+      // Install @openclaw/kimi-provider before starting the Gateway.
+      kimi: { enabled: true },
     },
   },
 
   agents: {
     defaults: {
-      model: { primary: "nvidia/nvidia/nemotron-3.5-lightning-30b-a3b" },
+      model: { primary: "kimi/kimi-for-coding" },
+      models: {
+        "kimi/kimi-for-coding": { alias: "Kimi Code" },
+      },
+      maxConcurrent: 1,
       sandbox: {
         // With the minimal tool profile this is a defense-in-depth boundary.
         // Do not enable filesystem/runtime tools until the sandbox backend passes its own test.

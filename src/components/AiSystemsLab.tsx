@@ -1,211 +1,314 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
-import type { LabLocale, LabMode, LabResponse } from "@/lib/ai-lab";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import type {
+  BotBlueprint,
+  StudioBrief,
+  StudioLocale,
+  StudioProject,
+  StudioStatus,
+} from "@/lib/bot-studio";
 import styles from "./AiSystemsLab.module.css";
 
-type Capability = {
-  configured: boolean;
-  public: boolean;
-  provider: string;
-  model: string;
-  limits: { requests: number; windowMinutes: number };
+type AiSystemsLabProps = {
+  locale: StudioLocale;
+  embedded?: boolean;
+};
+
+type ChatMessage = { role: "user" | "assistant"; content: string };
+
+const capabilityOptions = {
+  en: [
+    "Answer service questions",
+    "Collect structured requirements",
+    "Recommend the next action",
+    "Qualify incoming leads",
+    "Search an approved knowledge base",
+    "Escalate to a human",
+  ],
+  ru: [
+    "Отвечать на вопросы об услугах",
+    "Собирать требования по структуре",
+    "Рекомендовать следующий шаг",
+    "Квалифицировать обращения",
+    "Искать в одобренной базе знаний",
+    "Передавать диалог человеку",
+  ],
 };
 
 const copy = {
   en: {
-    back: "Portfolio",
-    locale: "RU",
-    eyebrow: "EXPERIMENT 01 / LIVE SYSTEMS LAB",
-    title: "Design the operator before writing the bot.",
-    intro:
-      "A bounded NVIDIA-powered architecture lab for Telegram bots, web assistants, service agents, and visual-reference operators. It proposes a system; it never performs external actions.",
-    provider: "Inference core",
-    boundary: "Execution boundary",
-    boundaryValue: "Architecture only · no write tools",
-    statusReady: "Live endpoint ready",
-    statusClosed: "Controlled preview",
-    formTitle: "Describe a real task",
-    mode: "System type",
-    modes: {
-      bot: "Channel bot",
-      assistant: "Agent assistant",
-      reference: "Visual reference operator",
-    },
-    channel: "Demo surface",
-    channelPlaceholder: "Web AI Lab",
-    surfaceNote: "The browser lab works on its own. Telegram, dashboards, and external channels are optional extensions.",
-    autonomy: "Action policy",
+    eyebrow: "EXPERIMENT 01 / BOT CONSTRUCTION SYSTEM",
+    title: "Describe one job. Leave with one working bot blueprint.",
+    intro: "A verified visitor gets one successful construction run and five preview messages. The result is a bounded studio artifact—not a claim that external channels are already connected.",
+    status: "System state",
+    ready: "Ready",
+    closed: "Closed",
+    signIn: "Verify identity",
+    signOut: "Sign out",
+    owner: "Owner / unlimited",
+    guest: "Guest / one build",
+    used: "Generation already used",
+    setup: "Supabase identity and storage must be connected before one-shot generation can open.",
+    steps: ["Purpose", "Behavior", "Boundaries"],
+    purpose: "What exact job should the bot perform?",
+    purposePlaceholder: "Qualify leads for a creative web studio, explain services, collect a clear project brief, and prepare a human handoff.",
+    audience: "Primary audience",
+    audiencePlaceholder: "Founders and product teams",
+    channel: "Target surface",
+    aiCore: "AI core",
+    aiOn: "Enabled / grounded generation",
+    aiOff: "Disabled / deterministic rules",
+    language: "Conversation language",
+    tone: "Voice and tone",
+    capabilities: "Required capabilities",
+    knowledge: "Approved knowledge",
+    knowledgePlaceholder: "Products, policies, FAQs, constraints, or facts this preview may use. Do not paste secrets or personal data.",
+    escalation: "Human handoff rule",
+    escalationPlaceholder: "Escalate pricing commitments, legal questions, and requests outside the supplied knowledge.",
+    autonomy: "Operating boundary",
     advisory: "Advisory only",
-    approval: "Human approval for every write action",
-    brief: "Brief",
-    briefPlaceholder:
-      "Example: qualify incoming website requests, retrieve verified service information, draft the next action, and escalate uncertain cases to a human.",
-    submit: "Generate system architecture",
-    working: "Architecting…",
-    limit: "Public demo limit: 3 generations per 10 minutes. No account data is requested or retained by this interface.",
-    result: "Generated architecture",
-    journey: "User journey",
-    loop: "Agent loop",
-    tools: "Tools and permissions",
-    guardrails: "Operational guardrails",
-    script: "Portfolio demo script",
-    evaluation: "Evaluation contract",
-    noActions: "Architecture generated server-side. No message, tool, or external write action was executed.",
-    standalone: "Open focused lab",
+    approval: "Approval before external action",
+    back: "Back",
+    next: "Continue",
+    generate: "Construct bot studio",
+    generating: "Model is constructing the system…",
+    oneShot: "A failed provider run does not consume your generation.",
+    studio: "Generated studio",
+    newBuild: "New owner build",
+    chat: "Preview channel",
+    graph: "Capability graph",
+    send: "Send",
+    messagePlaceholder: "Test one realistic user message",
+    messagesLeft: "preview messages left",
+    mode: "Runtime mode",
+    capabilitiesLabel: "Capabilities",
+    knowledgeLabel: "Knowledge",
+    guardrails: "Controls",
+    limitations: "Honest limits",
+    evaluations: "Evaluation contract",
+    graphEdges: "Relationships",
+    noKnowledge: "No external knowledge source was supplied.",
+    providerNote: "No external action is executed by this preview.",
+    standalone: "Open focused studio",
+    home: "Back to portfolio",
+    locale: "RU",
     errors: {
-      demo_not_open: "The live endpoint is intentionally closed until production rate controls are enabled.",
-      provider_not_configured: "The NVIDIA provider has not been configured on the server yet.",
-      rate_limited: "The public demo limit has been reached. Try again after the reset window.",
-      invalid_request: "Add a more specific brief of at least 24 characters.",
-      origin_not_allowed: "This request origin is not allowed.",
-      provider_auth_error: "The NVIDIA credential was rejected by the provider. The owner needs to replace it.",
-      provider_request_rejected: "NVIDIA rejected this model request. The owner needs to review the selected model.",
-      model_unavailable: "The selected NVIDIA model is unavailable for this account.",
-      provider_unavailable: "NVIDIA is temporarily unavailable for this model. Try again later or select another model.",
-      provider_timeout: "NVIDIA did not complete the request within the demo timeout.",
-      provider_network_error: "The server could not complete its secure connection to NVIDIA. Try again later.",
-      provider_error: "The inference provider could not complete this run. Try again later.",
-      invalid_response: "The provider returned an incomplete architecture.",
-      request_too_large: "The submitted brief is too large.",
-      unknown: "The architecture could not be generated.",
+      authentication_required: "Verify your identity before generating the studio.",
+      already_used: "This identity has already used its one successful generation.",
+      generation_in_progress: "A generation is already in progress for this identity.",
+      preview_limit_reached: "The five-message preview limit has been reached.",
+      studio_storage_not_configured: "Studio identity and storage are not configured yet.",
+      studio_storage_error: "The studio could not persist this run. Your generation remains available.",
+      provider_timeout: "The model did not finish in the demo timeout. Your generation remains available.",
+      provider_unavailable: "The model is temporarily unavailable. Your generation remains available.",
+      provider_request_rejected: "The selected model rejected this request. Your generation remains available.",
+      invalid_response: "The model returned an invalid blueprint. Your generation remains available.",
+      rate_limited: "The model or demo budget is temporarily rate-limited.",
+      unknown: "The studio could not complete the request. Try again later.",
     },
   },
   ru: {
-    back: "Портфолио",
-    locale: "EN",
-    eyebrow: "EXPERIMENT 01 / LIVE SYSTEMS LAB",
-    title: "Сначала проектируем оператора. Затем пишем бота.",
-    intro:
-      "Ограниченная NVIDIA-лаборатория архитектуры для Telegram-ботов, web-ассистентов, сервисных агентов и операторов визуальных референсов. Она проектирует систему, но не выполняет внешние действия.",
-    provider: "Inference-ядро",
-    boundary: "Граница выполнения",
-    boundaryValue: "Только архитектура · без write tools",
-    statusReady: "Live endpoint готов",
-    statusClosed: "Контролируемый preview",
-    formTitle: "Опишите реальную задачу",
-    mode: "Тип системы",
-    modes: {
-      bot: "Канальный бот",
-      assistant: "Агент-ассистент",
-      reference: "Оператор визуальных референсов",
-    },
-    channel: "Среда демонстрации",
-    channelPlaceholder: "Web AI Lab",
-    surfaceNote: "Лаборатория работает прямо в браузере. Telegram, dashboard и внешние каналы подключаются только при необходимости.",
-    autonomy: "Политика действий",
+    eyebrow: "ЭКСПЕРИМЕНТ 01 / СИСТЕМА КОНСТРУИРОВАНИЯ БОТОВ",
+    title: "Опишите одну задачу. Получите рабочий blueprint бота.",
+    intro: "Подтверждённый посетитель получает одну успешную сборку и пять сообщений для проверки. Результат — ограниченный Studio-артефакт, а не заявление о подключённых внешних каналах.",
+    status: "Состояние системы",
+    ready: "Готово",
+    closed: "Закрыто",
+    signIn: "Подтвердить личность",
+    signOut: "Выйти",
+    owner: "Владелец / без лимита",
+    guest: "Гость / одна сборка",
+    used: "Генерация уже использована",
+    setup: "Для точного one-shot ограничения необходимо подключить Supabase identity и storage.",
+    steps: ["Назначение", "Поведение", "Границы"],
+    purpose: "Какую точную задачу должен выполнять бот?",
+    purposePlaceholder: "Квалифицировать заявки web-студии, объяснять услуги, собирать понятный бриф и готовить передачу специалисту.",
+    audience: "Основная аудитория",
+    audiencePlaceholder: "Основатели и продуктовые команды",
+    channel: "Целевая среда",
+    aiCore: "ИИ-ядро",
+    aiOn: "Включено / grounded generation",
+    aiOff: "Выключено / детерминированные правила",
+    language: "Язык диалога",
+    tone: "Голос и тон",
+    capabilities: "Необходимые возможности",
+    knowledge: "Разрешённые знания",
+    knowledgePlaceholder: "Продукты, правила, FAQ, ограничения и факты, которые может использовать preview. Не добавляйте секреты или персональные данные.",
+    escalation: "Правило передачи человеку",
+    escalationPlaceholder: "Передавать вопросы о цене, юридические запросы и темы вне предоставленных знаний.",
+    autonomy: "Граница действий",
     advisory: "Только рекомендации",
-    approval: "Подтверждение человеком для каждого write-действия",
-    brief: "Задача",
-    briefPlaceholder:
-      "Например: квалифицировать заявки на разработку сайта, находить проверенную информацию об услугах, готовить следующее действие и передавать сложные случаи человеку.",
-    submit: "Собрать архитектуру системы",
-    working: "Проектирование…",
-    limit: "Лимит публичного demo: 3 генерации за 10 минут. Интерфейс не запрашивает и не сохраняет данные аккаунтов.",
-    result: "Архитектура системы",
-    journey: "Путь пользователя",
-    loop: "Цикл агента",
-    tools: "Инструменты и разрешения",
-    guardrails: "Операционные ограничения",
-    script: "Сценарий portfolio-demo",
-    evaluation: "Контракт оценки",
-    noActions: "Архитектура создана на сервере. Сообщения, инструменты и внешние write-действия не выполнялись.",
-    standalone: "Открыть отдельную лабораторию",
+    approval: "Подтверждение перед внешним действием",
+    back: "Назад",
+    next: "Продолжить",
+    generate: "Создать Bot Studio",
+    generating: "Модель конструирует систему…",
+    oneShot: "Ошибка provider не расходует вашу генерацию.",
+    studio: "Созданная студия",
+    newBuild: "Новая owner-сборка",
+    chat: "Preview-канал",
+    graph: "Граф возможностей",
+    send: "Отправить",
+    messagePlaceholder: "Проверьте одно реалистичное сообщение",
+    messagesLeft: "сообщений осталось",
+    mode: "Режим runtime",
+    capabilitiesLabel: "Возможности",
+    knowledgeLabel: "Знания",
+    guardrails: "Контроли",
+    limitations: "Честные ограничения",
+    evaluations: "Контракт проверки",
+    graphEdges: "Связи",
+    noKnowledge: "Внешний источник знаний не был предоставлен.",
+    providerNote: "Preview не выполняет внешних действий.",
+    standalone: "Открыть отдельную Studio",
+    home: "Вернуться в портфолио",
+    locale: "EN",
     errors: {
-      demo_not_open: "Live endpoint намеренно закрыт до подключения production rate controls.",
-      provider_not_configured: "NVIDIA provider пока не настроен на сервере.",
-      rate_limited: "Лимит публичного demo исчерпан. Повторите после окончания окна.",
-      invalid_request: "Добавьте более конкретное описание длиной не менее 24 символов.",
-      origin_not_allowed: "Источник запроса не разрешён.",
-      provider_auth_error: "NVIDIA отклонил credential. Владельцу необходимо заменить API key.",
-      provider_request_rejected: "NVIDIA отклонил запрос к модели. Владельцу нужно проверить выбранную модель.",
-      model_unavailable: "Выбранная NVIDIA-модель недоступна для этого аккаунта.",
-      provider_unavailable: "NVIDIA временно недоступен для этой модели. Повторите позднее или выберите другую модель.",
-      provider_timeout: "NVIDIA не завершил запрос в пределах demo-timeout.",
-      provider_network_error: "Сервер не завершил защищённое соединение с NVIDIA. Повторите позднее.",
-      provider_error: "Inference provider не завершил запрос. Повторите позднее.",
-      invalid_response: "Provider вернул неполную архитектуру.",
-      request_too_large: "Описание превышает допустимый размер.",
-      unknown: "Не удалось создать архитектуру.",
+      authentication_required: "Подтвердите личность перед созданием Studio.",
+      already_used: "Эта личность уже использовала одну успешную генерацию.",
+      generation_in_progress: "Для этой личности уже выполняется генерация.",
+      preview_limit_reached: "Лимит из пяти preview-сообщений исчерпан.",
+      studio_storage_not_configured: "Identity и storage Studio пока не настроены.",
+      studio_storage_error: "Studio не смогла сохранить запуск. Генерация остаётся доступной.",
+      provider_timeout: "Модель не завершила запрос вовремя. Генерация остаётся доступной.",
+      provider_unavailable: "Модель временно недоступна. Генерация остаётся доступной.",
+      provider_request_rejected: "Выбранная модель отклонила запрос. Генерация остаётся доступной.",
+      invalid_response: "Модель вернула некорректный blueprint. Генерация остаётся доступной.",
+      rate_limited: "Временный rate limit модели или demo-бюджета.",
+      unknown: "Studio не смогла завершить запрос. Повторите позднее.",
     },
   },
-} as const;
-
-type AiSystemsLabProps = {
-  locale: LabLocale;
-  embedded?: boolean;
 };
 
-function OrderedList({ items }: { items: string[] }) {
-  if (!items.length) return null;
+function initialBrief(locale: StudioLocale): StudioBrief {
+  return {
+    locale,
+    purpose: "",
+    audience: locale === "ru" ? "Основатели и продуктовые команды" : "Founders and product teams",
+    channel: "web",
+    aiCore: true,
+    language: locale === "ru" ? "Русский" : "English",
+    tone: locale === "ru" ? "Спокойный, точный, профессиональный" : "Calm, precise, professional",
+    autonomy: "approval-gated",
+    capabilities: capabilityOptions[locale].slice(0, 2),
+    knowledge: "",
+    escalation: "",
+  };
+}
+
+function BlueprintList({ title, items }: { title: string; items: string[] }) {
   return (
-    <ol className={styles.orderedList}>
-      {items.map((item, index) => (
-        <li key={`${index}-${item}`}>
-          <span>{String(index + 1).padStart(2, "0")}</span>
-          <p>{item}</p>
-        </li>
-      ))}
-    </ol>
+    <section className={styles.dataGroup}>
+      <h3>{title}</h3>
+      <ul>{items.map((item) => <li key={item}>{item}</li>)}</ul>
+    </section>
+  );
+}
+
+function StudioGraph({ blueprint, labels }: { blueprint: BotBlueprint; labels: typeof copy.en }) {
+  const grouped = useMemo(() => {
+    return blueprint.graph.nodes.reduce<Record<string, typeof blueprint.graph.nodes>>((acc, node) => {
+      (acc[node.kind] ||= []).push(node);
+      return acc;
+    }, {});
+  }, [blueprint]);
+
+  return (
+    <div className={styles.graphPanel}>
+      <div className={styles.graphGrid}>
+        {Object.entries(grouped).map(([kind, nodes], groupIndex) => (
+          <div className={styles.graphLane} key={kind}>
+            <span>{String(groupIndex + 1).padStart(2, "0")} / {kind}</span>
+            {nodes.map((node) => (
+              <article key={node.id} data-kind={node.kind}>
+                <b>{node.label}</b>
+                <p>{node.detail}</p>
+              </article>
+            ))}
+          </div>
+        ))}
+      </div>
+      <details className={styles.edgeList}>
+        <summary>{labels.graphEdges} / {blueprint.graph.edges.length}</summary>
+        <ul>
+          {blueprint.graph.edges.map((edge, index) => (
+            <li key={`${edge.source}-${edge.target}-${index}`}>
+              <code>{edge.source}</code><span>→ {edge.label} →</span><code>{edge.target}</code>
+            </li>
+          ))}
+        </ul>
+      </details>
+    </div>
   );
 }
 
 export default function AiSystemsLab({ locale, embedded = false }: AiSystemsLabProps) {
   const text = copy[locale];
-  const [mode, setMode] = useState<LabMode>("assistant");
-  const [channel, setChannel] = useState("Web AI Lab");
-  const [autonomy, setAutonomy] = useState<"advisory" | "approval-gated">("approval-gated");
-  const [brief, setBrief] = useState("");
-  const [capability, setCapability] = useState<Capability | null>(null);
-  const [result, setResult] = useState<LabResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [step, setStep] = useState(0);
+  const [brief, setBrief] = useState<StudioBrief>(() => initialBrief(locale));
+  const [status, setStatus] = useState<StudioStatus | null>(null);
+  const [project, setProject] = useState<StudioProject | null>(null);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const previousLanguage = document.documentElement.lang;
-    document.documentElement.lang = locale;
-    return () => {
-      document.documentElement.lang = previousLanguage;
-    };
-  }, [locale]);
+  const [error, setError] = useState<string | null>(null);
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const [remaining, setRemaining] = useState<number | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   useEffect(() => {
     let active = true;
     fetch("/api/labs/architect", { cache: "no-store" })
       .then((response) => response.json())
-      .then((data: Capability) => {
-        if (active) setCapability(data);
+      .then((data: StudioStatus) => {
+        if (!active) return;
+        setStatus(data);
+        if (data.project) {
+          setProject(data.project);
+          setMessages([{ role: "assistant", content: data.project.blueprint.greeting }]);
+          setRemaining(data.owner ? null : Math.max(0, data.previewMessageLimit - data.project.previewMessagesUsed));
+        }
       })
-      .catch(() => {
-        if (active) setCapability(null);
-      });
-    return () => {
-      active = false;
-    };
+      .catch(() => active && setStatus(null));
+    return () => { active = false; };
   }, []);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    const previous = document.documentElement.lang;
+    document.documentElement.lang = locale;
+    return () => { document.documentElement.lang = previous; };
+  }, [locale]);
+
+  function toggleCapability(capability: string) {
+    setBrief((current) => ({
+      ...current,
+      capabilities: current.capabilities.includes(capability)
+        ? current.capabilities.filter((item) => item !== capability)
+        : [...current.capabilities, capability].slice(0, 8),
+    }));
+  }
+
+  async function generate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-    setResult(null);
     setLoading(true);
-
     try {
       const response = await fetch("/api/labs/architect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ locale, mode, channel, autonomy, brief }),
+        body: JSON.stringify(brief),
       });
-      const data = (await response.json()) as LabResponse | { error?: string };
-
-      if (!response.ok || !("architecture" in data)) {
-        const code = "error" in data && data.error ? data.error : "unknown";
+      const data = await response.json() as { project?: StudioProject; error?: string };
+      if (!response.ok || !data.project) {
+        const code = data.error || "unknown";
         setError(text.errors[code as keyof typeof text.errors] || text.errors.unknown);
         return;
       }
-
-      setResult(data);
+      setProject(data.project);
+      setMessages([{ role: "assistant", content: data.project.blueprint.greeting }]);
+      setRemaining(status?.owner ? null : status?.previewMessageLimit ?? 5);
+      setStatus((current) => current ? { ...current, generationAvailable: current.owner, project: data.project! } : current);
     } catch {
       setError(text.errors.unknown);
     } finally {
@@ -213,11 +316,39 @@ export default function AiSystemsLab({ locale, embedded = false }: AiSystemsLabP
     }
   }
 
-  const live = Boolean(capability?.configured && capability?.public);
-  const homeHref = locale === "ru" ? "/ru" : "/";
-  const localeHref = locale === "ru" ? "/labs" : "/ru/labs";
+  async function sendMessage(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!project || !chatInput.trim()) return;
+    const message = chatInput.trim();
+    setChatInput("");
+    setError(null);
+    setMessages((current) => [...current, { role: "user", content: message }]);
+    setChatLoading(true);
+    try {
+      const response = await fetch("/api/labs/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId: project.id, message }),
+      });
+      const data = await response.json() as { answer?: string; remaining?: number | null; error?: string };
+      if (!response.ok || !data.answer) {
+        const code = data.error || "unknown";
+        setError(text.errors[code as keyof typeof text.errors] || text.errors.unknown);
+        return;
+      }
+      setMessages((current) => [...current, { role: "assistant", content: data.answer! }]);
+      if (typeof data.remaining === "number") setRemaining(data.remaining);
+    } catch {
+      setError(text.errors.unknown);
+    } finally {
+      setChatLoading(false);
+    }
+  }
+
+  const live = Boolean(status?.configured && status?.public);
   const standaloneHref = locale === "ru" ? "/ru/labs" : "/labs";
-  const ContentRoot = embedded ? "div" : "main";
+  const localeHref = locale === "ru" ? "/labs" : "/ru/labs";
+  const signInHref = `/auth/sign-in?next=${encodeURIComponent(standaloneHref)}`;
 
   return (
     <div
@@ -225,166 +356,170 @@ export default function AiSystemsLab({ locale, embedded = false }: AiSystemsLabP
       id={embedded ? "live-lab" : undefined}
       data-portfolio-section={embedded ? "true" : undefined}
     >
-      {!embedded && <div className={styles.scanline} aria-hidden="true" />}
-      {!embedded && (
-        <header className={styles.header}>
-          <Link href={homeHref} className={styles.identity}>
-            <span>E/S</span>
-            <b>{text.back}</b>
-          </Link>
-          <div className={styles.headerMeta}>
-            <span className={live ? styles.live : styles.closed}>{live ? text.statusReady : text.statusClosed}</span>
-            <Link href={localeHref} hrefLang={locale === "ru" ? "en" : "ru"}>{text.locale}</Link>
-          </div>
-        </header>
-      )}
-
-      {embedded && (
-        <div className={styles.embeddedHeader}>
-          <span>LAB / LIVE SYSTEMS</span>
-          <Link href={standaloneHref}>{text.standalone} ↗</Link>
+      <header className={styles.header}>
+        <Link href={locale === "ru" ? "/ru" : "/"} className={styles.identity}>
+          <span>E/S</span><b>{embedded ? text.standalone : text.home}</b>
+        </Link>
+        <div className={styles.headerState}>
+          <span className={live ? styles.live : styles.closed}>{live ? text.ready : text.closed}</span>
+          <Link href={localeHref} hrefLang={locale === "ru" ? "en" : "ru"}>{text.locale}</Link>
         </div>
-      )}
+      </header>
 
-      <ContentRoot>
-        <section className={styles.hero}>
-          <div className={styles.heroCopy}>
-            <p className={styles.eyebrow}>{text.eyebrow}</p>
-            <h1 id={embedded ? "live-lab-title" : undefined}>{text.title}</h1>
-            <p className={styles.intro}>{text.intro}</p>
-          </div>
-          <div className={styles.systemPlate} aria-label="System boundary">
-            <div>
-              <span>{text.provider}</span>
-              <b>{capability?.provider || "NVIDIA NIM"}</b>
-              <small>{capability?.model || "server-side model routing"}</small>
+      {!project ? (
+        <main className={styles.builder}>
+          <section className={styles.builderIntro}>
+            <p>{text.eyebrow}</p>
+            <h1>{text.title}</h1>
+            <div className={styles.introMeta}>
+              <p>{text.intro}</p>
+              <dl>
+                <div><dt>{text.status}</dt><dd>{live ? text.ready : text.closed}</dd></div>
+                <div><dt>ACCESS</dt><dd>{status?.owner ? text.owner : status?.signedIn ? text.guest : "UNVERIFIED"}</dd></div>
+                <div><dt>MODEL</dt><dd>{status?.model || "—"}</dd></div>
+              </dl>
             </div>
-            <div>
-              <span>{text.boundary}</span>
-              <b>{text.boundaryValue}</b>
-              <small>Server API · constrained output · observable failure</small>
-            </div>
-          </div>
-        </section>
-
-        <section className={styles.workspace}>
-          <form className={styles.form} onSubmit={handleSubmit}>
-            <div className={styles.formHeading}>
-              <span>INPUT / 01</span>
-              <h2>{text.formTitle}</h2>
-            </div>
-
-            <fieldset className={styles.modeField}>
-              <legend>{text.mode}</legend>
-              {(Object.keys(text.modes) as LabMode[]).map((value) => (
-                <label key={value}>
-                  <input
-                    type="radio"
-                    name="mode"
-                    value={value}
-                    checked={mode === value}
-                    onChange={() => setMode(value)}
-                  />
-                  <span>{text.modes[value]}</span>
-                </label>
-              ))}
-            </fieldset>
-
-            <label className={styles.field}>
-              <span>{text.channel}</span>
-              <input
-                value={channel}
-                onChange={(event) => setChannel(event.target.value)}
-                placeholder={text.channelPlaceholder}
-                minLength={2}
-                maxLength={80}
-                required
-              />
-              <em className={styles.fieldHint}>{text.surfaceNote}</em>
-            </label>
-
-            <label className={styles.field}>
-              <span>{text.autonomy}</span>
-              <select value={autonomy} onChange={(event) => setAutonomy(event.target.value as typeof autonomy)}>
-                <option value="advisory">{text.advisory}</option>
-                <option value="approval-gated">{text.approval}</option>
-              </select>
-            </label>
-
-            <label className={styles.field}>
-              <span>{text.brief}</span>
-              <textarea
-                value={brief}
-                onChange={(event) => setBrief(event.target.value)}
-                placeholder={text.briefPlaceholder}
-                minLength={24}
-                maxLength={2000}
-                rows={7}
-                required
-              />
-              <small>{brief.length} / 2000</small>
-            </label>
-
-            <button className={styles.submit} type="submit" disabled={loading || !live}>
-              <span>{loading ? text.working : text.submit}</span>
-              <i aria-hidden="true">↗</i>
-            </button>
-            <p className={styles.limit}>{text.limit}</p>
-            {error && <p className={styles.error} role="alert">{error}</p>}
-          </form>
-
-          <section className={styles.output} aria-live="polite" aria-busy={loading}>
-            <div className={styles.outputHeading}>
-              <span>OUTPUT / 02</span>
-              <h2>{text.result}</h2>
-            </div>
-
-            {!result && !loading && (
-              <div className={styles.idleOutput}>
-                <span>01</span><span>02</span><span>03</span>
-                <p>{live ? text.submit : text.statusClosed}</p>
-              </div>
-            )}
-
-            {loading && <div className={styles.loader}><span /><span /><span /></div>}
-
-            {result && (
-              <article className={styles.result}>
-                <p className={styles.resultModel}>{result.meta.provider} / {result.meta.model}</p>
-                <h2>{result.architecture.title}</h2>
-                <p className={styles.summary}>{result.architecture.summary}</p>
-
-                <div className={styles.resultGrid}>
-                  <section><h3>{text.journey}</h3><OrderedList items={result.architecture.userJourney} /></section>
-                  <section><h3>{text.loop}</h3><OrderedList items={result.architecture.agentLoop} /></section>
-                  <section className={styles.wideResult}>
-                    <h3>{text.tools}</h3>
-                    <div className={styles.tools}>
-                      {result.architecture.tools.map((tool) => (
-                        <div key={`${tool.name}-${tool.purpose}`}>
-                          <b>{tool.name}</b><p>{tool.purpose}</p><span>{tool.permission}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                  <section><h3>{text.guardrails}</h3><OrderedList items={result.architecture.guardrails} /></section>
-                  <section><h3>{text.script}</h3><OrderedList items={result.architecture.demoScript} /></section>
-                  <section className={styles.wideResult}><h3>{text.evaluation}</h3><OrderedList items={result.architecture.evaluation} /></section>
-                </div>
-                <p className={styles.disclosure}>{text.noActions}</p>
-              </article>
-            )}
           </section>
-        </section>
-      </ContentRoot>
 
-      {!embedded && (
-        <footer className={styles.footer}>
-          <span>EMIR SEMENOV / EXPERIMENT 01</span>
-          <span>NVIDIA NIM / OWNER-CONTROLLED</span>
-          <Link href={homeHref}>{text.back} ↑</Link>
-        </footer>
+          <form className={styles.builderForm} onSubmit={generate}>
+            <nav className={styles.stepNav} aria-label="Studio setup steps">
+              {text.steps.map((label, index) => (
+                <button key={label} type="button" onClick={() => setStep(index)} aria-current={step === index ? "step" : undefined}>
+                  <span>0{index + 1}</span>{label}
+                </button>
+              ))}
+            </nav>
+
+            <div className={styles.formCanvas}>
+              {step === 0 && (
+                <div className={styles.formStage}>
+                  <label className={styles.wideField}>
+                    <span>{text.purpose}</span>
+                    <textarea required minLength={24} maxLength={1200} value={brief.purpose} onChange={(event) => setBrief({ ...brief, purpose: event.target.value })} placeholder={text.purposePlaceholder} />
+                    <small>{brief.purpose.length} / 1200</small>
+                  </label>
+                  <label>
+                    <span>{text.audience}</span>
+                    <input required value={brief.audience} onChange={(event) => setBrief({ ...brief, audience: event.target.value })} placeholder={text.audiencePlaceholder} />
+                  </label>
+                  <label>
+                    <span>{text.channel}</span>
+                    <select value={brief.channel} onChange={(event) => setBrief({ ...brief, channel: event.target.value as StudioBrief["channel"] })}>
+                      <option value="web">Web</option><option value="telegram">Telegram</option><option value="whatsapp">WhatsApp</option><option value="instagram">Instagram</option><option value="concept">Concept only</option>
+                    </select>
+                  </label>
+                </div>
+              )}
+
+              {step === 1 && (
+                <div className={styles.formStage}>
+                  <fieldset className={styles.modeSwitch}>
+                    <legend>{text.aiCore}</legend>
+                    <button type="button" aria-pressed={brief.aiCore} onClick={() => setBrief({ ...brief, aiCore: true })}>{text.aiOn}</button>
+                    <button type="button" aria-pressed={!brief.aiCore} onClick={() => setBrief({ ...brief, aiCore: false })}>{text.aiOff}</button>
+                  </fieldset>
+                  <label><span>{text.language}</span><input value={brief.language} onChange={(event) => setBrief({ ...brief, language: event.target.value })} /></label>
+                  <label><span>{text.tone}</span><input value={brief.tone} onChange={(event) => setBrief({ ...brief, tone: event.target.value })} /></label>
+                  <fieldset className={styles.capabilityPicker}>
+                    <legend>{text.capabilities}</legend>
+                    {capabilityOptions[locale].map((capability) => (
+                      <button type="button" key={capability} aria-pressed={brief.capabilities.includes(capability)} onClick={() => toggleCapability(capability)}>
+                        <span>{brief.capabilities.includes(capability) ? "×" : "+"}</span>{capability}
+                      </button>
+                    ))}
+                  </fieldset>
+                </div>
+              )}
+
+              {step === 2 && (
+                <div className={styles.formStage}>
+                  <label className={styles.wideField}><span>{text.knowledge}</span><textarea maxLength={1200} value={brief.knowledge} onChange={(event) => setBrief({ ...brief, knowledge: event.target.value })} placeholder={text.knowledgePlaceholder} /></label>
+                  <label className={styles.wideField}><span>{text.escalation}</span><textarea maxLength={500} value={brief.escalation} onChange={(event) => setBrief({ ...brief, escalation: event.target.value })} placeholder={text.escalationPlaceholder} /></label>
+                  <fieldset className={styles.autonomy}><legend>{text.autonomy}</legend>
+                    <label><input type="radio" checked={brief.autonomy === "advisory"} onChange={() => setBrief({ ...brief, autonomy: "advisory" })} />{text.advisory}</label>
+                    <label><input type="radio" checked={brief.autonomy === "approval-gated"} onChange={() => setBrief({ ...brief, autonomy: "approval-gated" })} />{text.approval}</label>
+                  </fieldset>
+                </div>
+              )}
+            </div>
+
+            {!status?.configured && <p className={styles.setupNotice}>{text.setup}</p>}
+            {status?.signedIn && !status.generationAvailable && <p className={styles.setupNotice}>{text.used}</p>}
+            {error && <p className={styles.error} role="alert">{error}</p>}
+
+            <footer className={styles.formFooter}>
+              <p>{text.oneShot}</p>
+              <div>
+                {step > 0 && <button type="button" onClick={() => setStep((current) => current - 1)}>{text.back}</button>}
+                {!status?.signedIn ? (
+                  <Link href={signInHref}>{text.signIn} ↗</Link>
+                ) : step < 2 ? (
+                  <button type="button" onClick={() => setStep((current) => current + 1)}>{text.next} →</button>
+                ) : (
+                  <button type="submit" disabled={loading || !live || !status.generationAvailable || brief.capabilities.length === 0 || brief.purpose.trim().length < 24}>
+                    {loading ? text.generating : text.generate}
+                  </button>
+                )}
+              </div>
+            </footer>
+          </form>
+        </main>
+      ) : (
+        <main className={styles.studio}>
+          <header className={styles.studioTitle}>
+            <div><p>{text.studio} / {project.id.slice(0, 8)}</p><h1>{project.blueprint.name}</h1></div>
+            <p>{project.blueprint.oneLine}</p>
+            <div className={styles.studioActions}>
+              {status?.owner && <button type="button" onClick={() => { setProject(null); setMessages([]); setStep(0); }}>{text.newBuild}</button>}
+              <form action="/auth/sign-out" method="post"><button type="submit">{text.signOut}</button></form>
+            </div>
+          </header>
+
+          <section className={styles.studioGrid}>
+            <aside className={styles.blueprintRail}>
+              <div className={styles.modeCard}><span>{text.mode}</span><b>{project.blueprint.mode === "ai" ? "AI / GROUNDED" : "RULES / DETERMINISTIC"}</b><p>{project.blueprint.identity}</p></div>
+              <BlueprintList title={text.capabilitiesLabel} items={project.blueprint.capabilities} />
+              <BlueprintList title={text.knowledgeLabel} items={project.blueprint.knowledgeDomains.length ? project.blueprint.knowledgeDomains : [text.noKnowledge]} />
+              <BlueprintList title={text.limitations} items={project.blueprint.limitations} />
+            </aside>
+
+            <section className={styles.chatPanel} aria-label={text.chat}>
+              <header><span>{text.chat}</span><b>{remaining === null ? "∞" : remaining} {text.messagesLeft}</b></header>
+              <div className={styles.transcript} aria-live="polite">
+                {messages.map((message, index) => (
+                  <article key={`${message.role}-${index}`} data-role={message.role}>
+                    <span>{message.role === "assistant" ? project.blueprint.name : "YOU"}</span>
+                    <p>{message.content}</p>
+                  </article>
+                ))}
+                {chatLoading && <article data-role="assistant"><span>{project.blueprint.name}</span><p>…</p></article>}
+              </div>
+              <form onSubmit={sendMessage} className={styles.chatComposer}>
+                <label htmlFor="studio-chat" className="sr-only">{text.messagePlaceholder}</label>
+                <textarea id="studio-chat" required maxLength={1000} value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder={text.messagePlaceholder} disabled={chatLoading || remaining === 0} />
+                <button type="submit" disabled={chatLoading || !chatInput.trim() || remaining === 0}>{text.send} ↑</button>
+              </form>
+              {error && <p className={styles.error} role="alert">{error}</p>}
+              <footer>{text.providerNote}</footer>
+            </section>
+
+            <aside className={styles.intelligenceRail}>
+              <header><span>{text.graph}</span><b>{project.blueprint.graph.nodes.length} NODES</b></header>
+              <StudioGraph blueprint={project.blueprint} labels={text} />
+              <BlueprintList title={text.guardrails} items={project.blueprint.guardrails} />
+              <BlueprintList title={text.evaluations} items={project.blueprint.evaluationScenarios} />
+            </aside>
+          </section>
+        </main>
       )}
+      <footer className={styles.legalFooter}>
+        <span>EMIR SEMENOV / BOT STUDIO</span>
+        <nav aria-label="Legal">
+          <Link href="/privacy">Privacy</Link>
+          <Link href="/terms">Terms</Link>
+          <a href="mailto:emirsemenov@yahoo.com">Contact</a>
+        </nav>
+      </footer>
     </div>
   );
 }

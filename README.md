@@ -1,77 +1,95 @@
 # Emir Semenov — Bot Systems Portfolio
 
-An experimental bilingual portfolio for AI-powered bot systems across Telegram,
-Instagram, WhatsApp, and connected service channels.
+A bilingual experimental portfolio and bounded Bot Studio for designing bot
+systems across web, Telegram, Instagram, WhatsApp, and concept-only channels.
 
-## Run locally
+## Local development
 
 ```bash
 npm install
+cp .env.example .env.local
 npm run dev
 ```
 
-Open `http://localhost:3100`. The Russian version is available at `/ru`.
+Open `http://localhost:3100`. English Bot Studio lives at `/labs`; Russian at
+`/ru/labs`.
 
-## Production
+## Bot Studio contract
 
-Deploy this directory as an independent Vercel project and set
-`NEXT_PUBLIC_SITE_URL` to the final canonical URL.
+A signed-in visitor describes one job, behavior, allowed knowledge, and
+operating boundaries. The server returns a validated `BotBlueprint` with a
+preview chat and a connected capability/knowledge graph.
 
-The public portfolio remains a media-led showcase. The AI Systems Lab is
-embedded into `/` and `/ru` as an interactive portfolio chapter; `/labs` and
-`/ru/labs` remain focused deep links to the same experience. The demo is backed
-by a server-side NVIDIA NIM endpoint. It does not require Telegram or a private
-dashboard, never exposes the provider credential, and never executes external
-tools or write actions.
+- GitHub OAuth or email magic link establishes one Supabase identity.
+- A non-owner identity receives exactly one successful generation.
+- Provider/storage failures release the reservation and do not consume it.
+- A guest project receives five atomic preview-message claims.
+- The owner email receives unlimited builds and preview messages.
+- No preview executes channel actions, tools, webhooks, or external writes.
+- Supabase RLS isolates every guest project, message, entitlement, and run.
 
-The unlinked `/ops` route is an owner-only operations surface protected by HTTP
-authentication and `noindex` headers. It is not an OpenClaw Gateway: the actual
-Gateway must use a separate persistent runtime and an isolated OpenClaw profile.
+The public inference provider is NVIDIA NIM and its key is server-only. The
+separate owner OpenClaw runtime uses Kimi Code. The two trust zones are not
+interchangeable.
 
-Required server-only environment variables are documented in `.env.example`.
-Keep `AI_DEMO_PUBLIC=false` until a production rate-limit rule is active.
-
-## AI lab architecture
+## Architecture
 
 ```text
-Public browser
-    ↓
-Vercel /api/labs/architect
-    ↓ validation + same-origin check + bounded rate window
-NVIDIA hosted NIM
+Browser
+  ├─ Supabase Auth → GitHub OAuth / email magic link
+  └─ Vercel /api/labs/*
+       ├─ schema validation + same-origin gate
+       ├─ Supabase RLS + atomic one-shot/message quota
+       └─ NVIDIA NIM → validated BotBlueprint / bounded answer
 
 Owner browser
-    ↓ HTTP auth
-Vercel /ops
-    ↓ status only
-Isolated OpenClaw persistent host (Tailscale Serve or Cloudflare Access)
+  └─ Vercel /ops → exact owner identity + read-only telemetry
+
+Private owner runtime
+  └─ persistent OpenClaw host → isolated profile → Kimi Code
 ```
 
-The initial lab supports three honest concept modes: channel bot, agent
-assistant, and visual-reference operator. Generated output includes the user
-journey, bounded agent loop, proposed tools and permissions, guardrails, demo
-script, and an evaluation contract.
+Vercel cannot host the always-on OpenClaw Gateway. The hardened deployment kit
+is in `infra/openclaw`; it binds the Gateway to host loopback and keeps all
+channels and powerful tools disabled by default.
 
-## Nine-scene direction
+## Supabase setup
 
-The experience is composed as nine full-screen signals. Each chapter is driven
-by one animated reference from the user-curated source board. Exact original
-GIF copies live in `public/media/original`; the earlier local MP4 sources remain
-intact in `experiments/gif`.
+This project accepts only modern Supabase keys:
 
-- `animation8.gif` opens the full-frame hero.
-- `animation5.gif` and `animation6.gif` become moving background chapters.
-- The remaining six animations are staged as asymmetric objects, portraits,
-  operational layers, and the final contact signal.
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (`sb_publishable_…`)
+- `SUPABASE_SECRET_KEY` (`sb_secret_…`, server-only)
+- `STUDIO_OWNER_USER_ID` (immutable Supabase Auth UUID)
+- `STUDIO_OWNER_EMAIL`
 
-The animations are visual research from the user-curated MDT07 Reference
-Studio Board “Web references #1 AI bots”. They are not presented as portfolio
-authorship or client work.
+Apply `supabase/migrations/202609020001_bot_studio.sql`, then configure these
+Auth redirect URLs exactly:
 
-## Media quality
+```text
+http://localhost:3100/auth/callback
+https://experiment-1-bot-portfolio.vercel.app/auth/callback
+```
 
-The experience uses the original animated GIF files from the source board.
-They are not enlarged, sharpened, frame-interpolated, or transcoded again, so
-the original palette, timing, and loop behavior stay intact. Off-screen scenes
-use native browser lazy loading. If the visitor prefers reduced motion, the
-browser selects a static first-frame PNG instead.
+Enable GitHub OAuth only after its client ID/secret is stored in Supabase. Email
+magic-link auth works as the lower-setup identity path. Never put the secret key
+in a `NEXT_PUBLIC_` variable.
+
+## Deployment gate
+
+1. Apply the database migration and run the SQL policy tests.
+2. Add Vercel environment variables from `.env.example` without committing an
+   `.env` file.
+3. Keep `AI_DEMO_PUBLIC=false` during setup.
+4. Verify sign-in, one successful guest build, blocked second build, five chat
+   messages, owner bypass, `/ops` denial for non-owners, and logout.
+5. Protect `/api/labs/*` with a platform rate-limit rule.
+6. Set `AI_DEMO_PUBLIC=true`, redeploy, and repeat the production smoke test.
+
+## Media provenance and quality
+
+The nine visual chapters use original animated references from the user-curated
+MDT07 Reference Studio board “Web references #1 AI bots”. They are shown as
+visual research, not claimed as client work or original authorship. Original GIF
+copies live in `public/media/original`; reduced-motion visitors receive static
+first frames.

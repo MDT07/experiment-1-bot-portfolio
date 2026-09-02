@@ -300,7 +300,7 @@ export default function PortfolioExperience({ content }: { content: PortfolioCon
 
       <footer className="micro-footer mono">
         <span>EMIR SEMENOV © 2026</span>
-        <span>{content.labels.reduceMotion}</span>
+        <span><Link href="/privacy">PRIVACY</Link> / <Link href="/terms">TERMS</Link></span>
         <a href="#vision">TOP ↑</a>
       </footer>
     </div>

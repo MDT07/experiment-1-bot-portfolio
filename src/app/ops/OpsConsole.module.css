@@ -24,15 +24,26 @@
 .statusPanel header span,
 .runbook header span { font: 500 9px/1.4 var(--font-mono), monospace; letter-spacing: 0.12em; text-transform: uppercase; }
 .header p { margin: 0; color: var(--muted); }
+.headerActions form { display: contents; }
+.headerActions button { min-height: 34px; padding: 0 12px; color: var(--text); border: 1px solid var(--line); background: transparent; cursor: pointer; font: 550 8px/1 var(--font-mono), monospace; letter-spacing: .08em; text-transform: uppercase; }
+.headerActions button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
 
 .hero { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 40px; padding: clamp(72px, 10vw, 150px) clamp(20px, 6vw, 92px); border-bottom: 1px solid var(--line); }
 .hero > p { grid-column: 1 / -1; margin: 0; color: var(--cyan); }
-.hero h1 { max-width: 17ch; margin: 0; font-size: clamp(38px, 5.5vw, 76px); font-weight: 550; letter-spacing: -0.055em; line-height: 0.98; }
+.hero h1 { max-width: 17ch; margin: 0; font-size: clamp(36px, 4.8vw, 66px); font-weight: 550; letter-spacing: -0.052em; line-height: 0.99; }
 .heroMeta { min-width: min(320px, 100%); padding: 18px 0; border-top: 1px solid var(--cyan); border-bottom: 1px solid var(--line); }
 .heroMeta span { display: block; color: var(--muted); }
 .heroMeta b { display: block; margin-top: 14px; font-size: 14px; overflow-wrap: anywhere; }
 
-.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin: clamp(42px, 6vw, 90px) clamp(20px, 6vw, 92px) 0; background: var(--line); border: 1px solid var(--line); }
+.metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: clamp(38px, 5vw, 72px) clamp(20px, 6vw, 92px) 0; border: 1px solid var(--line); }
+.metrics article { display: grid; min-height: 126px; padding: 22px; border-right: 1px solid var(--line); background: var(--panel); }
+.metrics article:last-child { border-right: 0; }
+.metrics span,
+.metrics small { color: var(--muted); font: 500 8px/1.4 var(--font-mono), monospace; letter-spacing: .1em; text-transform: uppercase; }
+.metrics b { align-self: end; color: var(--cyan); font: 550 clamp(28px, 3vw, 44px)/1 var(--font-sans), sans-serif; letter-spacing: -.04em; }
+.metrics small { margin-top: 6px; letter-spacing: .04em; text-transform: none; }
+
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin: 1px clamp(20px, 6vw, 92px) 0; background: var(--line); border: 1px solid var(--line); }
 .statusPanel,
 .runbook { min-width: 0; padding: clamp(26px, 4vw, 52px); background: var(--panel); }
 .statusPanel header,
@@ -55,14 +66,45 @@
 .runbook p,
 .runbook ol { margin: 24px 0 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
 .runbook ol { display: grid; gap: 12px; padding-left: 20px; }
+.activity { grid-column: 1 / -1; }
+.notice { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.runTable { display: grid; border: 1px solid var(--line); }
+.runTable > div { display: grid; grid-template-columns: 90px 90px minmax(160px, 1fr) minmax(150px, .6fr) minmax(100px, .5fr); gap: 16px; align-items: center; min-height: 50px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--bg); }
+.runTable > div:last-child { border-bottom: 0; }
+.runTable span,
+.runTable b,
+.runTable time,
+.runTable small { font: 500 8px/1.45 var(--font-mono), monospace; letter-spacing: .06em; text-transform: uppercase; }
+.runTable span { color: var(--cyan); }
+.runTable span[data-status="failed"] { color: var(--orange); }
+.runTable p { overflow: hidden; margin: 0; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.runTable time,
+.runTable small { color: var(--muted); }
+
+@media (hover: hover) {
+  .headerActions button:hover { color: var(--bg); border-color: var(--cyan); background: var(--cyan); }
+}
 
 @media (max-width: 860px) {
   .hero { grid-template-columns: 1fr; }
+  .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .metrics article:nth-child(2) { border-right: 0; }
+  .metrics article:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
   .grid { grid-template-columns: 1fr; }
+  .activity { grid-column: auto; }
+  .runTable > div { grid-template-columns: 76px 70px minmax(120px, 1fr); }
+  .runTable time,
+  .runTable small { display: none; }
 }
 
 @media (max-width: 600px) {
   .header p { display: none; }
   .hero h1 { font-size: clamp(36px, 12vw, 54px); }
+  .metrics { grid-template-columns: 1fr; }
+  .metrics article,
+  .metrics article:nth-child(2) { border-right: 0; border-bottom: 1px solid var(--line); }
+  .metrics article:last-child { border-bottom: 0; }
   .statusPanel dl div { grid-template-columns: 1fr; gap: 8px; }
+  .runTable > div { grid-template-columns: 72px 1fr; }
+  .runTable p { grid-column: 1 / -1; }
 }

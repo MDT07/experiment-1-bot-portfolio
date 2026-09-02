@@ -4,8 +4,8 @@ import AiSystemsLab from "@/components/AiSystemsLab";
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
 
 export const metadata: Metadata = {
-  title: "Live AI Systems Lab",
-  description: "A bounded NVIDIA-powered architecture laboratory for bots and agent assistants.",
+  title: "Bot Studio",
+  description: "Design one bounded bot system, inspect its capability graph, and test it in a five-message preview.",
   alternates: {
     canonical: siteUrl ? `${siteUrl}/labs` : undefined,
     languages: siteUrl ? { en: `${siteUrl}/labs`, ru: `${siteUrl}/ru/labs` } : undefined,

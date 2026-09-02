@@ -14,7 +14,7 @@ services:
       OPENCLAW_CONFIG_DIR: /home/node/.openclaw
       OPENCLAW_WORKSPACE_DIR: /home/node/.openclaw/workspace
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:?Generate a dedicated gateway token}
-      NVIDIA_API_KEY: ${NVIDIA_API_KEY:?Set the NVIDIA key on the gateway host}
+      KIMI_API_KEY: ${KIMI_API_KEY:?Set the Kimi Code key on the gateway host}
       OPENCLAW_DISABLE_BONJOUR: "1"
       TZ: ${OPENCLAW_TZ:-UTC}
     volumes:
@@ -50,7 +50,7 @@ services:
       OPENCLAW_CONFIG_DIR: /home/node/.openclaw
       OPENCLAW_WORKSPACE_DIR: /home/node/.openclaw/workspace
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:?Generate a dedicated gateway token}
-      NVIDIA_API_KEY: ${NVIDIA_API_KEY:?Set the NVIDIA key on the gateway host}
+      KIMI_API_KEY: ${KIMI_API_KEY:?Set the Kimi Code key on the gateway host}
     volumes:
       - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
       - ${OPENCLAW_AUTH_PROFILE_SECRET_DIR}:/home/node/.config/openclaw
