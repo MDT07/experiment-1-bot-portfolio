@@ -15,8 +15,40 @@ Open `http://localhost:3100`. The Russian version is available at `/ru`.
 ## Production
 
 Deploy this directory as an independent Vercel project and set
-`NEXT_PUBLIC_SITE_URL` to the final canonical URL. No backend, API key, AI model,
-or social-platform credential is required by this showcase.
+`NEXT_PUBLIC_SITE_URL` to the final canonical URL.
+
+The public portfolio remains a media-led showcase. `/labs` and `/ru/labs` add a
+bounded systems-architecture demo backed by a server-side NVIDIA NIM endpoint.
+The endpoint never exposes the provider credential and never executes external
+tools or write actions.
+
+The unlinked `/ops` route is an owner-only operations surface protected by HTTP
+authentication and `noindex` headers. It is not an OpenClaw Gateway: the actual
+Gateway must use a separate persistent runtime and an isolated OpenClaw profile.
+
+Required server-only environment variables are documented in `.env.example`.
+Keep `AI_DEMO_PUBLIC=false` until a production rate-limit rule is active.
+
+## AI lab architecture
+
+```text
+Public browser
+    ↓
+Vercel /api/labs/architect
+    ↓ validation + same-origin check + bounded rate window
+NVIDIA hosted NIM
+
+Owner browser
+    ↓ HTTP auth
+Vercel /ops
+    ↓ status only
+Isolated OpenClaw persistent host (Tailscale Serve or Cloudflare Access)
+```
+
+The initial lab supports three honest concept modes: channel bot, agent
+assistant, and visual-reference operator. Generated output includes the user
+journey, bounded agent loop, proposed tools and permissions, guardrails, demo
+script, and an evaluation contract.
 
 ## Nine-scene direction
 

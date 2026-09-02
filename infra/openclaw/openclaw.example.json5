@@ -1,0 +1,66 @@
+{
+  gateway: {
+    mode: "local",
+    bind: "lan",
+    port: 18789,
+    auth: {
+      mode: "token",
+      token: { source: "env", provider: "default", id: "OPENCLAW_GATEWAY_TOKEN" },
+    },
+    controlUi: {
+      // Add the exact identity-aware proxy origin before remote access is enabled.
+      allowedOrigins: ["http://127.0.0.1:18789"],
+    },
+  },
+
+  models: {
+    providers: {
+      nvidia: {
+        baseUrl: "https://integrate.api.nvidia.com/v1",
+        api: "openai-completions",
+      },
+    },
+  },
+
+  agents: {
+    defaults: {
+      model: { primary: "nvidia/nvidia/nemotron-3.5-lightning-30b-a3b" },
+      sandbox: {
+        // With the minimal tool profile this is a defense-in-depth boundary.
+        // Do not enable filesystem/runtime tools until the sandbox backend passes its own test.
+        mode: "all",
+        scope: "session",
+        workspaceAccess: "none",
+      },
+    },
+  },
+
+  tools: {
+    profile: "minimal",
+    deny: [
+      "apply_patch",
+      "browser",
+      "canvas",
+      "cron",
+      "edit",
+      "exec",
+      "gateway",
+      "nodes",
+      "process",
+      "read",
+      "write",
+      "group:fs",
+      "group:runtime",
+    ],
+    elevated: { enabled: false },
+    exec: { mode: "deny" },
+  },
+
+  channels: {
+    telegram: {
+      enabled: false,
+      dmPolicy: "pairing",
+      groupPolicy: "disabled",
+    },
+  },
+}

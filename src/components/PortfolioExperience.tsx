@@ -35,6 +35,7 @@ function SceneMedia({ scene, eager }: { scene: PortfolioScene; eager: boolean })
 export default function PortfolioExperience({ content }: { content: PortfolioContent }) {
   const [activeScene, setActiveScene] = useState(0);
   const languageHref = content.locale === "en" ? "/ru" : "/";
+  const labHref = content.locale === "en" ? "/labs" : "/ru/labs";
 
   useEffect(() => {
     document.documentElement.lang = content.locale;
@@ -93,6 +94,9 @@ export default function PortfolioExperience({ content }: { content: PortfolioCon
         </p>
 
         <div className="header-actions">
+          <Link className="language-link mono" href={labHref}>
+            LIVE LAB
+          </Link>
           <Link className="language-link mono" href={languageHref} hrefLang={content.locale === "en" ? "ru" : "en"}>
             {content.languageLabel}
           </Link>
