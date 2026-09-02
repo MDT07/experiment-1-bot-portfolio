@@ -25,6 +25,7 @@ export class NvidiaLabError extends Error {
       | "model_unavailable"
       | "provider_unavailable"
       | "provider_timeout"
+      | "provider_network_error"
       | "provider_error"
       | "invalid_response",
     public readonly status: number,
@@ -166,6 +167,19 @@ export async function createLabArchitecture(input: LabRequest): Promise<LabArchi
     if (error instanceof NvidiaLabError) throw error;
     if (error instanceof Error && error.name === "AbortError") {
       throw new NvidiaLabError("provider_timeout", 504);
+    }
+    if (error instanceof Error) {
+      const cause = error.cause;
+      const causeCode =
+        cause && typeof cause === "object" && "code" in cause && typeof cause.code === "string"
+          ? cause.code
+          : "unknown";
+
+      console.error("[nvidia-lab] upstream network failure", {
+        errorName: error.name,
+        causeCode,
+      });
+      throw new NvidiaLabError("provider_network_error", 502);
     }
     throw new NvidiaLabError("provider_error", 502);
   } finally {
