@@ -157,7 +157,12 @@ export async function createLabArchitecture(input: LabRequest): Promise<LabArchi
       throw new NvidiaLabError("provider_request_rejected", 502);
     }
     if (response.status >= 500) throw new NvidiaLabError("provider_unavailable", 502);
-    if (!response.ok) throw new NvidiaLabError("provider_error", 502);
+    if (!response.ok) {
+      console.error("[nvidia-lab] upstream http failure", {
+        providerStatus: response.status,
+      });
+      throw new NvidiaLabError("provider_error", 502);
+    }
 
     const content = data.choices?.[0]?.message?.content?.trim();
     if (!content) throw new NvidiaLabError("invalid_response", 502);
