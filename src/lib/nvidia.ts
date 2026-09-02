@@ -17,7 +17,14 @@ type NvidiaResponse = {
 
 export class NvidiaLabError extends Error {
   constructor(
-    public readonly code: "not_configured" | "rate_limited" | "provider_error" | "invalid_response",
+    public readonly code:
+      | "not_configured"
+      | "rate_limited"
+      | "provider_auth_error"
+      | "provider_request_rejected"
+      | "model_unavailable"
+      | "provider_error"
+      | "invalid_response",
     public readonly status: number,
   ) {
     super(code);
@@ -139,6 +146,13 @@ export async function createLabArchitecture(input: LabRequest): Promise<LabArchi
 
     const data = (await response.json().catch(() => ({}))) as NvidiaResponse;
     if (response.status === 429) throw new NvidiaLabError("rate_limited", 429);
+    if (response.status === 401 || response.status === 403) {
+      throw new NvidiaLabError("provider_auth_error", 502);
+    }
+    if (response.status === 404) throw new NvidiaLabError("model_unavailable", 502);
+    if (response.status === 400 || response.status === 422) {
+      throw new NvidiaLabError("provider_request_rejected", 502);
+    }
     if (!response.ok) throw new NvidiaLabError("provider_error", 502);
 
     const content = data.choices?.[0]?.message?.content?.trim();
