@@ -17,9 +17,11 @@ Open `http://localhost:3100`. The Russian version is available at `/ru`.
 Deploy this directory as an independent Vercel project and set
 `NEXT_PUBLIC_SITE_URL` to the final canonical URL.
 
-The public portfolio remains a media-led showcase. `/labs` and `/ru/labs` add a
-bounded systems-architecture demo backed by a server-side NVIDIA NIM endpoint.
-The endpoint never exposes the provider credential and never executes external
+The public portfolio remains a media-led showcase. The AI Systems Lab is
+embedded into `/` and `/ru` as an interactive portfolio chapter; `/labs` and
+`/ru/labs` remain focused deep links to the same experience. The demo is backed
+by a server-side NVIDIA NIM endpoint. It does not require Telegram or a private
+dashboard, never exposes the provider credential, and never executes external
 tools or write actions.
 
 The unlinked `/ops` route is an owner-only operations surface protected by HTTP

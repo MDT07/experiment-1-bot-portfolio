@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
+import AiSystemsLab from "@/components/AiSystemsLab";
 import type { PortfolioContent, PortfolioScene } from "@/lib/content";
 
 const contactEmail = "emirsemenov@yahoo.com";
@@ -33,28 +34,39 @@ function SceneMedia({ scene, eager }: { scene: PortfolioScene; eager: boolean })
 }
 
 export default function PortfolioExperience({ content }: { content: PortfolioContent }) {
-  const [activeScene, setActiveScene] = useState(0);
+  const [activeSection, setActiveSection] = useState(0);
   const languageHref = content.locale === "en" ? "/ru" : "/";
-  const labHref = content.locale === "en" ? "/labs" : "/ru/labs";
+  const navigationItems = content.scenes.flatMap((scene) =>
+    scene.id === "concepts"
+      ? [
+          { id: scene.id, index: scene.index, kicker: scene.kicker },
+          {
+            id: "live-lab",
+            index: "LAB",
+            kicker: content.locale === "ru" ? "ЖИВАЯ AI-ЛАБОРАТОРИЯ" : "LIVE AI SYSTEMS",
+          },
+        ]
+      : [{ id: scene.id, index: scene.index, kicker: scene.kicker }],
+  );
 
   useEffect(() => {
     document.documentElement.lang = content.locale;
     document.documentElement.dataset.experience = "nine-signals";
 
-    const scenes = [...document.querySelectorAll<HTMLElement>(".scene")];
+    const sections = [...document.querySelectorAll<HTMLElement>("[data-portfolio-section]")];
     const revealObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (!entry.isIntersecting) return;
           entry.target.classList.add("is-visible");
-          const index = scenes.indexOf(entry.target as HTMLElement);
-          if (index >= 0) setActiveScene(index);
+          const index = sections.indexOf(entry.target as HTMLElement);
+          if (index >= 0) setActiveSection(index);
         });
       },
-      { threshold: 0.52 },
+      { threshold: 0.25 },
     );
 
-    scenes.forEach((scene) => revealObserver.observe(scene));
+    sections.forEach((section) => revealObserver.observe(section));
 
     const onScroll = () => {
       const scrollable = document.documentElement.scrollHeight - window.innerHeight;
@@ -72,7 +84,7 @@ export default function PortfolioExperience({ content }: { content: PortfolioCon
     };
   }, [content.locale]);
 
-  const currentScene = content.scenes[activeScene] ?? content.scenes[0];
+  const currentSection = navigationItems[activeSection] ?? navigationItems[0];
 
   return (
     <div className={`experience experience--${content.locale}`}>
@@ -90,13 +102,13 @@ export default function PortfolioExperience({ content }: { content: PortfolioCon
 
         <p className="now-playing mono" aria-live="polite">
           <span>{content.header.work}</span>
-          <b>{currentScene.index} / {currentScene.kicker}</b>
+          <b>{currentSection.index} / {currentSection.kicker}</b>
         </p>
 
         <div className="header-actions">
-          <Link className="language-link mono" href={labHref}>
+          <a className="language-link mono" href="#live-lab">
             LIVE LAB
-          </Link>
+          </a>
           <Link className="language-link mono" href={languageHref} hrefLang={content.locale === "en" ? "ru" : "en"}>
             {content.languageLabel}
           </Link>
@@ -107,41 +119,42 @@ export default function PortfolioExperience({ content }: { content: PortfolioCon
       </header>
 
       <nav className="signal-rail" aria-label={content.header.work}>
-        {content.scenes.map((scene, index) => (
+        {navigationItems.map((section, index) => (
           <a
-            className={index === activeScene ? "is-active" : ""}
-            href={`#${scene.id}`}
-            aria-label={`${content.labels.chapter} ${scene.index}: ${scene.title}`}
-            key={scene.id}
+            className={index === activeSection ? "is-active" : ""}
+            href={`#${section.id}`}
+            aria-label={`${content.labels.chapter} ${section.index}: ${section.kicker}`}
+            key={section.id}
           >
             <span />
-            <i className="mono">{scene.index}</i>
+            <i className="mono">{section.index}</i>
           </a>
         ))}
       </nav>
 
       <main>
         {content.scenes.map((scene, index) => (
-          <section
-            className={`scene scene--${scene.layout} scene--${scene.id}`}
-            id={scene.id}
-            aria-labelledby={`${scene.id}-title`}
-            key={scene.id}
-          >
-            <SceneMedia scene={scene} eager={index === 0} />
-            <div className="scene-shade" aria-hidden="true" />
+          <Fragment key={scene.id}>
+            <section
+              className={`scene scene--${scene.layout} scene--${scene.id}`}
+              id={scene.id}
+              aria-labelledby={`${scene.id}-title`}
+              data-portfolio-section
+            >
+              <SceneMedia scene={scene} eager={index === 0} />
+              <div className="scene-shade" aria-hidden="true" />
 
-            <span className="scene-index mono" aria-hidden="true">
-              {scene.index}
-            </span>
+              <span className="scene-index mono" aria-hidden="true">
+                {scene.index}
+              </span>
 
-            <div className="scene-copy">
-              <p className="scene-kicker mono">{scene.kicker}</p>
-              <h1 id={`${scene.id}-title`}>{scene.title}</h1>
-              <p className="scene-body">{scene.body}</p>
-            </div>
+              <div className="scene-copy">
+                <p className="scene-kicker mono">{scene.kicker}</p>
+                <h1 id={`${scene.id}-title`}>{scene.title}</h1>
+                <p className="scene-body">{scene.body}</p>
+              </div>
 
-            <p className="scene-aside mono">{scene.aside}</p>
+              <p className="scene-aside mono">{scene.aside}</p>
 
             {scene.id === "vision" && (
               <>
@@ -245,8 +258,8 @@ export default function PortfolioExperience({ content }: { content: PortfolioCon
               </div>
             )}
 
-            {scene.id === "contact" && (
-              <div className="contact-field">
+              {scene.id === "contact" && (
+                <div className="contact-field">
                 <a className="contact-link contact-email" href={`mailto:${contactEmail}`}>
                   <span>{content.labels.email}</span>
                   {contactEmail}
@@ -276,9 +289,12 @@ export default function PortfolioExperience({ content }: { content: PortfolioCon
                   {content.labels.location}<br />
                   <span>{content.labels.availability}</span>
                 </p>
-              </div>
-            )}
-          </section>
+                </div>
+              )}
+            </section>
+
+            {scene.id === "concepts" && <AiSystemsLab locale={content.locale} embedded />}
+          </Fragment>
         ))}
       </main>
 

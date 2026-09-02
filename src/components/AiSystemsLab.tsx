@@ -33,8 +33,9 @@ const copy = {
       assistant: "Agent assistant",
       reference: "Visual reference operator",
     },
-    channel: "Primary surface",
-    channelPlaceholder: "Telegram + private web dashboard",
+    channel: "Demo surface",
+    channelPlaceholder: "Web AI Lab",
+    surfaceNote: "The browser lab works on its own. Telegram, dashboards, and external channels are optional extensions.",
     autonomy: "Action policy",
     advisory: "Advisory only",
     approval: "Human approval for every write action",
@@ -52,6 +53,7 @@ const copy = {
     script: "Portfolio demo script",
     evaluation: "Evaluation contract",
     noActions: "Architecture generated server-side. No message, tool, or external write action was executed.",
+    standalone: "Open focused lab",
     errors: {
       demo_not_open: "The live endpoint is intentionally closed until production rate controls are enabled.",
       provider_not_configured: "The NVIDIA provider has not been configured on the server yet.",
@@ -83,8 +85,9 @@ const copy = {
       assistant: "Агент-ассистент",
       reference: "Оператор визуальных референсов",
     },
-    channel: "Основная поверхность",
-    channelPlaceholder: "Telegram + приватная web-панель",
+    channel: "Среда демонстрации",
+    channelPlaceholder: "Web AI Lab",
+    surfaceNote: "Лаборатория работает прямо в браузере. Telegram, dashboard и внешние каналы подключаются только при необходимости.",
     autonomy: "Политика действий",
     advisory: "Только рекомендации",
     approval: "Подтверждение человеком для каждого write-действия",
@@ -102,6 +105,7 @@ const copy = {
     script: "Сценарий portfolio-demo",
     evaluation: "Контракт оценки",
     noActions: "Архитектура создана на сервере. Сообщения, инструменты и внешние write-действия не выполнялись.",
+    standalone: "Открыть отдельную лабораторию",
     errors: {
       demo_not_open: "Live endpoint намеренно закрыт до подключения production rate controls.",
       provider_not_configured: "NVIDIA provider пока не настроен на сервере.",
@@ -115,6 +119,11 @@ const copy = {
     },
   },
 } as const;
+
+type AiSystemsLabProps = {
+  locale: LabLocale;
+  embedded?: boolean;
+};
 
 function OrderedList({ items }: { items: string[] }) {
   if (!items.length) return null;
@@ -130,10 +139,10 @@ function OrderedList({ items }: { items: string[] }) {
   );
 }
 
-export default function AiSystemsLab({ locale }: { locale: LabLocale }) {
+export default function AiSystemsLab({ locale, embedded = false }: AiSystemsLabProps) {
   const text = copy[locale];
   const [mode, setMode] = useState<LabMode>("assistant");
-  const [channel, setChannel] = useState("");
+  const [channel, setChannel] = useState("Web AI Lab");
   const [autonomy, setAutonomy] = useState<"advisory" | "approval-gated">("approval-gated");
   const [brief, setBrief] = useState("");
   const [capability, setCapability] = useState<Capability | null>(null);
@@ -195,26 +204,41 @@ export default function AiSystemsLab({ locale }: { locale: LabLocale }) {
   const live = Boolean(capability?.configured && capability?.public);
   const homeHref = locale === "ru" ? "/ru" : "/";
   const localeHref = locale === "ru" ? "/labs" : "/ru/labs";
+  const standaloneHref = locale === "ru" ? "/ru/labs" : "/labs";
+  const ContentRoot = embedded ? "div" : "main";
 
   return (
-    <div className={styles.shell}>
-      <div className={styles.scanline} aria-hidden="true" />
-      <header className={styles.header}>
-        <Link href={homeHref} className={styles.identity}>
-          <span>E/S</span>
-          <b>{text.back}</b>
-        </Link>
-        <div className={styles.headerMeta}>
-          <span className={live ? styles.live : styles.closed}>{live ? text.statusReady : text.statusClosed}</span>
-          <Link href={localeHref} hrefLang={locale === "ru" ? "en" : "ru"}>{text.locale}</Link>
-        </div>
-      </header>
+    <div
+      className={`${styles.shell} ${embedded ? styles.embedded : ""}`}
+      id={embedded ? "live-lab" : undefined}
+      data-portfolio-section={embedded ? "true" : undefined}
+    >
+      {!embedded && <div className={styles.scanline} aria-hidden="true" />}
+      {!embedded && (
+        <header className={styles.header}>
+          <Link href={homeHref} className={styles.identity}>
+            <span>E/S</span>
+            <b>{text.back}</b>
+          </Link>
+          <div className={styles.headerMeta}>
+            <span className={live ? styles.live : styles.closed}>{live ? text.statusReady : text.statusClosed}</span>
+            <Link href={localeHref} hrefLang={locale === "ru" ? "en" : "ru"}>{text.locale}</Link>
+          </div>
+        </header>
+      )}
 
-      <main>
+      {embedded && (
+        <div className={styles.embeddedHeader}>
+          <span>LAB / LIVE SYSTEMS</span>
+          <Link href={standaloneHref}>{text.standalone} ↗</Link>
+        </div>
+      )}
+
+      <ContentRoot>
         <section className={styles.hero}>
           <div className={styles.heroCopy}>
             <p className={styles.eyebrow}>{text.eyebrow}</p>
-            <h1>{text.title}</h1>
+            <h1 id={embedded ? "live-lab-title" : undefined}>{text.title}</h1>
             <p className={styles.intro}>{text.intro}</p>
           </div>
           <div className={styles.systemPlate} aria-label="System boundary">
@@ -264,6 +288,7 @@ export default function AiSystemsLab({ locale }: { locale: LabLocale }) {
                 maxLength={80}
                 required
               />
+              <em className={styles.fieldHint}>{text.surfaceNote}</em>
             </label>
 
             <label className={styles.field}>
@@ -339,13 +364,15 @@ export default function AiSystemsLab({ locale }: { locale: LabLocale }) {
             )}
           </section>
         </section>
-      </main>
+      </ContentRoot>
 
-      <footer className={styles.footer}>
-        <span>EMIR SEMENOV / EXPERIMENT 01</span>
-        <span>NVIDIA NIM / OWNER-CONTROLLED</span>
-        <Link href={homeHref}>{text.back} ↑</Link>
-      </footer>
+      {!embedded && (
+        <footer className={styles.footer}>
+          <span>EMIR SEMENOV / EXPERIMENT 01</span>
+          <span>NVIDIA NIM / OWNER-CONTROLLED</span>
+          <Link href={homeHref}>{text.back} ↑</Link>
+        </footer>
+      )}
     </div>
   );
 }
