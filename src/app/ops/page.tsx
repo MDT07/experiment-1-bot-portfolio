@@ -67,7 +67,8 @@ export default async function OwnerOperationsPage() {
   ];
 
   const recentRuns = recentRunsResult.data ?? [];
-  const usageTotals = (usageRunsResult.data ?? []).reduce(
+  const successfulUsageRuns = usageRunsResult.data ?? [];
+  const usageTotals = successfulUsageRuns.reduce(
     (total, run) => ({
       tokens: total.tokens + (run.total_tokens ?? 0),
       estimatedCostUsd: total.estimatedCostUsd + Number(run.estimated_cost_usd ?? 0),
@@ -100,8 +101,8 @@ export default async function OwnerOperationsPage() {
         <article><span>PROJECTS</span><b>{projectsResult.count ?? "—"}</b></article>
         <article><span>GUEST IDENTITIES</span><b>{usersResult.count ?? "—"}</b></article>
         <article><span>MODEL RUNS</span><b>{runsResult.count ?? "—"}</b></article>
-        <article><span>TOTAL TOKENS</span><b>{usageTotals.tokens.toLocaleString("en-US")}</b></article>
-        <article><span>ITEMIZED COST</span><b>{usageTotals.itemizedRuns ? `$${usageTotals.estimatedCostUsd.toFixed(4)}` : "INCLUDED"}</b><small>Kimi membership quota</small></article>
+        <article><span>TOTAL TOKENS</span><b>{successfulUsageRuns.length ? usageTotals.tokens.toLocaleString("en-US") : "—"}</b><small>{successfulUsageRuns.length ? "provider-reported" : "usage not returned"}</small></article>
+        <article><span>ITEMIZED COST</span><b>{usageTotals.itemizedRuns ? `$${usageTotals.estimatedCostUsd.toFixed(4)}` : successfulUsageRuns.length ? "INCLUDED" : "UNREPORTED"}</b><small>{successfulUsageRuns.length ? "Kimi membership quota" : "no successful usage payload"}</small></article>
         <article><span>TEST BUDGET</span><b>1</b><small>owner blueprint request</small></article>
       </section>
 
