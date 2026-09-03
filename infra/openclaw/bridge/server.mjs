@@ -102,6 +102,37 @@ function upstreamCode(status) {
   return "gateway_unavailable";
 }
 
+function tokenCount(value) {
+  const number = Number(value);
+  return Number.isSafeInteger(number) && number >= 0 ? number : 0;
+}
+
+function estimatedCost(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? number : null;
+}
+
+function normalizeUsage(raw) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const details = source.prompt_tokens_details && typeof source.prompt_tokens_details === "object"
+    ? source.prompt_tokens_details
+    : {};
+  const cost = source.cost && typeof source.cost === "object" ? source.cost : {};
+  const inputTokens = tokenCount(source.prompt_tokens ?? source.input_tokens);
+  const outputTokens = tokenCount(source.completion_tokens ?? source.output_tokens);
+  const totalTokens = tokenCount(source.total_tokens) || inputTokens + outputTokens;
+
+  return {
+    reported: Object.keys(source).length > 0,
+    inputTokens,
+    outputTokens,
+    totalTokens,
+    cachedInputTokens: tokenCount(details.cached_tokens ?? source.cache_read_input_tokens),
+    estimatedCostUsd: estimatedCost(cost.total ?? source.estimated_cost_usd ?? source.cost_usd),
+    billingMode: "kimi_membership_quota",
+  };
+}
+
 const server = http.createServer(async (request, response) => {
   if (request.method === "GET" && request.url === "/healthz") {
     return send(response, 200, { ok: true });
@@ -162,7 +193,11 @@ const server = http.createServer(async (request, response) => {
 
     const content = data?.choices?.[0]?.message?.content?.trim();
     if (!content) return send(response, 502, { error: { code: "invalid_gateway_response" } });
-    return send(response, 200, { content, agent: payload.agent });
+    return send(response, 200, {
+      content,
+      agent: payload.agent,
+      usage: normalizeUsage(data.usage),
+    });
   } catch (error) {
     if (error instanceof Error && error.message === "request_too_large") {
       return send(response, 413, { error: { code: "request_too_large" } });

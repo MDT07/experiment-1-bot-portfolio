@@ -5,9 +5,10 @@ Vercel application: OpenClaw owns long-lived state, sessions, plugins, and model
 authentication, so it must run on a persistent Linux host or an always-on local
 machine.
 
-The exact Kimi Code model and API key are intentionally absent. Do not start a
-live inference test until the model decision in
-`../../docs/OPENCLAW-MODEL-DECISION.md` is complete.
+The selected first-test model is `kimi/kimi-for-coding`; the API key remains
+absent from Git and belongs only on the runtime host. Do not run inference from
+the command line: the first measured request must originate from the live
+Studio after the security checks pass.
 
 ## Trust boundary
 
@@ -61,9 +62,8 @@ require a live model call.
 
 ## Activation after model selection
 
-1. Put the Kimi Code credential in host `.env` as `KIMI_API_KEY`.
-2. Put the chosen exact `provider/model` ref in host `.env` as
-   `OPENCLAW_MODEL`.
+1. Supply the Kimi Code credential to the host process as `KIMI_API_KEY`.
+2. Set `OPENCLAW_MODEL=kimi/kimi-for-coding` on the host.
 3. Validate config and start both private services:
 
 ```bash

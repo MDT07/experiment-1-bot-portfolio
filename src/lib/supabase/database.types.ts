@@ -16,6 +16,7 @@ type StudioProjectRow = {
   status: string;
   preview_messages_used: number;
   preview_message_limit: number;
+  generation_usage: Json | null;
   created_at: string;
   updated_at: string;
 };
@@ -50,6 +51,12 @@ type StudioGenerationRunRow = {
   status: string;
   error_code: string | null;
   duration_ms: number | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  total_tokens: number | null;
+  cached_input_tokens: number | null;
+  estimated_cost_usd: number | null;
+  billing_mode: string | null;
   created_at: string;
   completed_at: string | null;
 };
@@ -60,7 +67,7 @@ export type Database = {
       studio_projects: {
         Row: StudioProjectRow;
         Insert: Pick<StudioProjectRow, "owner_user_id" | "brief" | "blueprint" | "provider" | "model"> &
-          Partial<Pick<StudioProjectRow, "id" | "status" | "preview_messages_used" | "preview_message_limit" | "created_at" | "updated_at">>;
+          Partial<Pick<StudioProjectRow, "id" | "status" | "preview_messages_used" | "preview_message_limit" | "generation_usage" | "created_at" | "updated_at">>;
         Update: Partial<StudioProjectRow>;
         Relationships: [];
       };
@@ -80,7 +87,7 @@ export type Database = {
       studio_generation_runs: {
         Row: StudioGenerationRunRow;
         Insert: Pick<StudioGenerationRunRow, "owner_user_id" | "operation" | "provider" | "model" | "status"> &
-          Partial<Pick<StudioGenerationRunRow, "id" | "project_id" | "error_code" | "duration_ms" | "created_at" | "completed_at">>;
+          Partial<Pick<StudioGenerationRunRow, "id" | "project_id" | "error_code" | "duration_ms" | "input_tokens" | "output_tokens" | "total_tokens" | "cached_input_tokens" | "estimated_cost_usd" | "billing_mode" | "created_at" | "completed_at">>;
         Update: Partial<StudioGenerationRunRow>;
         Relationships: [];
       };

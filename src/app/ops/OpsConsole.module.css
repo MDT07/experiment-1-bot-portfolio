@@ -35,7 +35,7 @@
 .heroMeta span { display: block; color: var(--muted); }
 .heroMeta b { display: block; margin-top: 14px; font-size: 14px; overflow-wrap: anywhere; }
 
-.metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: clamp(38px, 5vw, 72px) clamp(20px, 6vw, 92px) 0; border: 1px solid var(--line); }
+.metrics { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); margin: clamp(38px, 5vw, 72px) clamp(20px, 6vw, 92px) 0; border: 1px solid var(--line); }
 .metrics article { display: grid; min-height: 126px; padding: 22px; border-right: 1px solid var(--line); background: var(--panel); }
 .metrics article:last-child { border-right: 0; }
 .metrics span,
@@ -88,8 +88,8 @@
 @media (max-width: 860px) {
   .hero { grid-template-columns: 1fr; }
   .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .metrics article:nth-child(2) { border-right: 0; }
-  .metrics article:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+  .metrics article:nth-child(even) { border-right: 0; }
+  .metrics article:nth-child(-n+4) { border-bottom: 1px solid var(--line); }
   .grid { grid-template-columns: 1fr; }
   .activity { grid-column: auto; }
   .runTable > div { grid-template-columns: 76px 70px minmax(120px, 1fr); }
@@ -97,12 +97,18 @@
   .runTable small { display: none; }
 }
 
+@media (max-width: 1180px) and (min-width: 861px) {
+  .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .metrics article:nth-child(3n) { border-right: 0; }
+  .metrics article:nth-child(-n+3) { border-bottom: 1px solid var(--line); }
+}
+
 @media (max-width: 600px) {
   .header p { display: none; }
   .hero h1 { font-size: clamp(36px, 12vw, 54px); }
   .metrics { grid-template-columns: 1fr; }
   .metrics article,
-  .metrics article:nth-child(2) { border-right: 0; border-bottom: 1px solid var(--line); }
+  .metrics article:nth-child(even) { border-right: 0; border-bottom: 1px solid var(--line); }
   .metrics article:last-child { border-bottom: 0; }
   .statusPanel dl div { grid-template-columns: 1fr; gap: 8px; }
   .runTable > div { grid-template-columns: 72px 1fr; }

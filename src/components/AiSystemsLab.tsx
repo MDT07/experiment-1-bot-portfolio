@@ -91,6 +91,15 @@ const copy = {
     graphEdges: "Relationships",
     noKnowledge: "No external knowledge source was supplied.",
     providerNote: "No external action is executed by this preview.",
+    usage: "Measured usage",
+    inputTokens: "Input",
+    outputTokens: "Output",
+    totalTokens: "Total",
+    cachedTokens: "Cached input",
+    cashCost: "Cash charge",
+    includedQuota: "Included membership quota / not itemized per request",
+    usageUnavailable: "The provider did not report token usage.",
+    chatClosed: "Preview chat is disabled for the one-request test.",
     standalone: "Open focused studio",
     home: "Back to portfolio",
     locale: "RU",
@@ -110,6 +119,9 @@ const copy = {
       provider_request_rejected: "The selected model rejected this request. Your generation remains available.",
       invalid_response: "The model returned an invalid blueprint. Your generation remains available.",
       rate_limited: "The model or demo budget is temporarily rate-limited.",
+      owner_test_only: "The first measured test is restricted to the owner account.",
+      test_budget_exhausted: "The single-request test budget has already been used.",
+      chat_not_open: "Preview chat is disabled for the single-request test.",
       unknown: "The studio could not complete the request. Try again later.",
     },
   },
@@ -166,6 +178,15 @@ const copy = {
     graphEdges: "Связи",
     noKnowledge: "Внешний источник знаний не был предоставлен.",
     providerNote: "Preview не выполняет внешних действий.",
+    usage: "Измеренный расход",
+    inputTokens: "Вход",
+    outputTokens: "Выход",
+    totalTokens: "Всего",
+    cachedTokens: "Из кэша",
+    cashCost: "Денежное списание",
+    includedQuota: "Включено в membership-квоту / цена запроса не детализируется",
+    usageUnavailable: "Provider не вернул данные о токенах.",
+    chatClosed: "Preview-чат отключён на время теста с одним запросом.",
     standalone: "Открыть отдельную Studio",
     home: "Вернуться в портфолио",
     locale: "EN",
@@ -185,6 +206,9 @@ const copy = {
       provider_request_rejected: "Выбранная модель отклонила запрос. Генерация остаётся доступной.",
       invalid_response: "Модель вернула некорректный blueprint. Генерация остаётся доступной.",
       rate_limited: "Временный rate limit модели или demo-бюджета.",
+      owner_test_only: "Первый измеренный тест доступен только аккаунту владельца.",
+      test_budget_exhausted: "Лимит теста из одного запроса уже использован.",
+      chat_not_open: "Preview-чат отключён для теста с одним запросом.",
       unknown: "Studio не смогла завершить запрос. Повторите позднее.",
     },
   },
@@ -486,6 +510,22 @@ export default function AiSystemsLab({ locale, embedded = false }: AiSystemsLabP
           <section className={styles.studioGrid}>
             <aside className={styles.blueprintRail}>
               <div className={styles.modeCard}><span>{text.mode}</span><b>{project.blueprint.mode === "ai" ? "AI / GROUNDED" : "RULES / DETERMINISTIC"}</b><p>{project.blueprint.identity}</p></div>
+              <section className={styles.usageCard} aria-label={text.usage}>
+                <h3>{text.usage}</h3>
+                {project.generationUsage?.reported ? (
+                  <>
+                    <dl>
+                      <div><dt>{text.inputTokens}</dt><dd>{project.generationUsage.inputTokens.toLocaleString()}</dd></div>
+                      <div><dt>{text.outputTokens}</dt><dd>{project.generationUsage.outputTokens.toLocaleString()}</dd></div>
+                      <div><dt>{text.totalTokens}</dt><dd>{project.generationUsage.totalTokens.toLocaleString()}</dd></div>
+                      <div><dt>{text.cachedTokens}</dt><dd>{project.generationUsage.cachedInputTokens.toLocaleString()}</dd></div>
+                    </dl>
+                    <p><span>{text.cashCost}</span>{project.generationUsage.estimatedCostUsd === null
+                      ? text.includedQuota
+                      : `$${project.generationUsage.estimatedCostUsd.toFixed(6)} USD`}</p>
+                  </>
+                ) : <p>{text.usageUnavailable}</p>}
+              </section>
               <BlueprintList title={text.capabilitiesLabel} items={project.blueprint.capabilities} />
               <BlueprintList title={text.knowledgeLabel} items={project.blueprint.knowledgeDomains.length ? project.blueprint.knowledgeDomains : [text.noKnowledge]} />
               <BlueprintList title={text.limitations} items={project.blueprint.limitations} />
@@ -504,8 +544,8 @@ export default function AiSystemsLab({ locale, embedded = false }: AiSystemsLabP
               </div>
               <form onSubmit={sendMessage} className={styles.chatComposer}>
                 <label htmlFor="studio-chat" className="sr-only">{text.messagePlaceholder}</label>
-                <textarea id="studio-chat" required maxLength={1000} value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder={text.messagePlaceholder} disabled={chatLoading || remaining === 0} />
-                <button type="submit" disabled={chatLoading || !chatInput.trim() || remaining === 0}>{text.send} ↑</button>
+                <textarea id="studio-chat" required maxLength={1000} value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder={status?.chatAvailable ? text.messagePlaceholder : text.chatClosed} disabled={chatLoading || remaining === 0 || !status?.chatAvailable} />
+                <button type="submit" disabled={chatLoading || !chatInput.trim() || remaining === 0 || !status?.chatAvailable}>{text.send} ↑</button>
               </form>
               {error && <p className={styles.error} role="alert">{error}</p>}
               <footer>{text.providerNote}</footer>

@@ -28,9 +28,10 @@ preview chat and a connected capability/knowledge graph.
 - No preview executes channel actions, tools, webhooks, or external writes.
 - Supabase RLS isolates every guest project, message, entitlement, and run.
 
-Inference is deliberately disabled until an exact Kimi Code model is selected
-and the isolated OpenClaw runtime passes security and quality checks. No model
-provider key or OpenClaw operator credential belongs in this Vercel project.
+The first measured baseline uses Kimi K2.7 Code through the exact OpenClaw ref
+`kimi/kimi-for-coding`. Its initial release is owner-only, capped at one
+blueprint request, and keeps preview chat disabled. No model provider key or
+OpenClaw operator credential belongs in this Vercel project.
 
 ## Architecture
 
@@ -82,8 +83,8 @@ in a `NEXT_PUBLIC_` variable.
 ## Deployment gate
 
 1. Apply the database migration and run the SQL policy tests.
-2. Select and record the exact Kimi Code model; do not infer model availability
-   from the key format alone.
+2. Verify the selected `kimi/kimi-for-coding` model is visible to the account;
+   do not infer availability from the key format alone.
 3. Bootstrap the persistent OpenClaw host from `infra/openclaw`, then expose
    only the Bridge port through authenticated HTTPS ingress.
 4. Add the Bridge URL/token and model label to Vercel without committing an
@@ -91,7 +92,9 @@ in a `NEXT_PUBLIC_` variable.
 5. Verify sign-in, one successful guest build, blocked second build, five chat
    messages, owner bypass, `/ops` denial for non-owners, and logout.
 6. Protect `/api/labs/*` with a platform rate-limit rule.
-7. Set `AI_DEMO_PUBLIC=true`, redeploy, and repeat the production smoke test.
+7. For the first measurement set `AI_DEMO_PUBLIC=true`,
+   `AI_DEMO_OWNER_ONLY=true`, `AI_DEMO_RUN_LIMIT=1`, and
+   `AI_DEMO_CHAT_ENABLED=false`; redeploy and run one production blueprint.
 
 ## Media provenance and quality
 

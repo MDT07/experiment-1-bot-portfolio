@@ -37,6 +37,7 @@ function isAllowedOrigin(request: NextRequest): boolean {
 export async function POST(request: NextRequest) {
   if (!isAllowedOrigin(request)) return json({ error: "origin_not_allowed" }, 403);
   if (process.env.AI_DEMO_PUBLIC !== "true") return json({ error: "demo_not_open" }, 503);
+  if (process.env.AI_DEMO_CHAT_ENABLED !== "true") return json({ error: "chat_not_open" }, 503);
   if (!isStudioSupabaseConfigured()) return json({ error: "studio_storage_not_configured" }, 503);
 
   const contentLength = Number(request.headers.get("content-length") || 0);
@@ -88,9 +89,10 @@ export async function POST(request: NextRequest) {
     .single();
 
   try {
-    const answer = blueprint.mode === "rules"
-      ? runRulesPreview(blueprint, parsed.data.message)
+    const result = blueprint.mode === "rules"
+      ? { answer: runRulesPreview(blueprint, parsed.data.message), usage: null }
       : await chatWithBot(blueprint, parsed.data.message, brief.locale === "ru" ? "ru" : "en");
+    const { answer, usage } = result;
 
     const { error: messageError } = await context.supabaseAdmin.from("studio_messages").insert([
       {
@@ -114,6 +116,12 @@ export async function POST(request: NextRequest) {
         .update({
           status: "succeeded",
           duration_ms: Date.now() - startedAt,
+          input_tokens: usage?.inputTokens ?? 0,
+          output_tokens: usage?.outputTokens ?? 0,
+          total_tokens: usage?.totalTokens ?? 0,
+          cached_input_tokens: usage?.cachedInputTokens ?? 0,
+          estimated_cost_usd: usage?.estimatedCostUsd ?? null,
+          billing_mode: usage?.billingMode ?? null,
           completed_at: new Date().toISOString(),
         })
         .eq("id", run.id);
@@ -123,7 +131,7 @@ export async function POST(request: NextRequest) {
     return json({
       answer,
       remaining: owner ? null : Math.max(0, row.preview_message_limit - used),
-      meta: { provider, model, actionsExecuted: false },
+      meta: { provider, model, actionsExecuted: false, usage },
     });
   } catch (error) {
     if (!owner && claimed) {

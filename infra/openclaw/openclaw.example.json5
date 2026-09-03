@@ -17,7 +17,6 @@
       endpoints: {
         chatCompletions: {
           enabled: true,
-          maxBodyBytes: 32768,
           images: { allowUrl: false },
         },
       },
@@ -34,6 +33,11 @@
     },
   },
 
+  // The Studio agent is text-only. Browser control and semantic memory are
+  // intentionally disabled to keep the owner test inside a narrow boundary.
+  browser: { enabled: false },
+  memory: { search: { enabled: false } },
+
   agents: {
     defaults: {
       // No default is selected in Git. Set OPENCLAW_MODEL only after evaluation.
@@ -47,7 +51,6 @@
     },
     entries: {
       studio: {
-        default: true,
         identity: {
           name: "Studio Architect",
           theme: "bounded bot-system design",

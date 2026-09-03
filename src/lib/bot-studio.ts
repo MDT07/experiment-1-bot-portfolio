@@ -71,16 +71,28 @@ export const studioChatRequestSchema = z.object({
   message: z.string().trim().min(1).max(1000),
 });
 
+export const modelUsageSchema = z.object({
+  reported: z.boolean(),
+  inputTokens: z.number().int().nonnegative(),
+  outputTokens: z.number().int().nonnegative(),
+  totalTokens: z.number().int().nonnegative(),
+  cachedInputTokens: z.number().int().nonnegative(),
+  estimatedCostUsd: z.number().nonnegative().nullable(),
+  billingMode: z.literal("kimi_membership_quota"),
+});
+
 export type StudioBrief = z.infer<typeof studioBriefSchema>;
 export type BotBlueprint = z.infer<typeof botBlueprintSchema>;
 export type StudioChatRequest = z.infer<typeof studioChatRequestSchema>;
 export type StudioLocale = StudioBrief["locale"];
+export type ModelUsage = z.infer<typeof modelUsageSchema>;
 
 export type StudioProject = {
   id: string;
   blueprint: BotBlueprint;
   createdAt: string;
   previewMessagesUsed: number;
+  generationUsage: ModelUsage | null;
 };
 
 export type StudioStatus = {
@@ -89,6 +101,7 @@ export type StudioStatus = {
   signedIn: boolean;
   owner: boolean;
   generationAvailable: boolean;
+  chatAvailable: boolean;
   previewMessageLimit: number;
   provider: string;
   model: string;

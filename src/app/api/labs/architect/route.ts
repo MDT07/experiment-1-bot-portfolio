@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { studioBriefSchema, type BotBlueprint, type StudioProject, type StudioStatus } from "@/lib/bot-studio";
+import {
+  modelUsageSchema,
+  studioBriefSchema,
+  type BotBlueprint,
+  type StudioProject,
+  type StudioStatus,
+} from "@/lib/bot-studio";
 import {
   createBotBlueprint,
   getOpenClawModelLabel,
@@ -16,6 +22,18 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const previewMessageLimit = 5;
+
+function modelRunLimit(): number {
+  const configured = Number(process.env.AI_DEMO_RUN_LIMIT || 1);
+  return Number.isSafeInteger(configured) && configured >= 1 && configured <= 100 ? configured : 1;
+}
+
+function modelRunWindowStart(): string | null {
+  const configured = process.env.AI_DEMO_RUNS_SINCE?.trim();
+  if (!configured) return null;
+  const parsed = new Date(configured);
+  return Number.isNaN(parsed.valueOf()) ? null : parsed.toISOString();
+}
 
 function json(body: unknown, status = 200, extraHeaders?: HeadersInit) {
   return NextResponse.json(body, {
@@ -47,15 +65,18 @@ type ProjectRow = {
   blueprint: BotBlueprint;
   created_at: string;
   preview_messages_used: number;
+  generation_usage: unknown;
 };
 
 function asProject(row: ProjectRow | null): StudioProject | null {
   if (!row) return null;
+  const usage = modelUsageSchema.safeParse(row.generation_usage);
   return {
     id: row.id,
     blueprint: row.blueprint,
     createdAt: row.created_at,
     previewMessagesUsed: row.preview_messages_used,
+    generationUsage: usage.success ? usage.data : null,
   };
 }
 
@@ -66,6 +87,7 @@ export async function GET() {
     signedIn: false,
     owner: false,
     generationAvailable: false,
+    chatAvailable: process.env.AI_DEMO_CHAT_ENABLED === "true",
     previewMessageLimit,
     provider: "OpenClaw Studio Bridge",
     model: getOpenClawModelLabel(),
@@ -83,7 +105,7 @@ export async function GET() {
   if (owner) {
     const { data } = await context.supabase
       .from("studio_projects")
-      .select("id, blueprint, created_at, preview_messages_used")
+      .select("id, blueprint, created_at, preview_messages_used, generation_usage")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -97,7 +119,7 @@ export async function GET() {
     if (entitlement?.project_id) {
       const { data } = await context.supabase
         .from("studio_projects")
-        .select("id, blueprint, created_at, preview_messages_used")
+        .select("id, blueprint, created_at, preview_messages_used, generation_usage")
         .eq("id", entitlement.project_id)
         .maybeSingle();
       projectRow = data as ProjectRow | null;
@@ -129,6 +151,20 @@ export async function POST(request: NextRequest) {
   if (!context?.user) return json({ error: "authentication_required" }, 401);
 
   const owner = isStudioOwner(context.user);
+  if (process.env.AI_DEMO_OWNER_ONLY === "true" && !owner) {
+    return json({ error: "owner_test_only" }, 403);
+  }
+
+  let modelRunQuery = context.supabaseAdmin
+    .from("studio_generation_runs")
+    .select("id", { count: "exact", head: true })
+    .eq("operation", "blueprint");
+  const runWindowStart = modelRunWindowStart();
+  if (runWindowStart) modelRunQuery = modelRunQuery.gte("created_at", runWindowStart);
+  const { count: modelRuns, error: modelRunError } = await modelRunQuery;
+  if (modelRunError) return json({ error: "studio_storage_error" }, 503);
+  if ((modelRuns ?? 0) >= modelRunLimit()) return json({ error: "test_budget_exhausted" }, 429);
+
   let reservationId: string | null = null;
   let runId: string | null = null;
   let createdProjectId: string | null = null;
@@ -163,7 +199,7 @@ export async function POST(request: NextRequest) {
   runId = run?.id || null;
 
   try {
-    const blueprint = await createBotBlueprint(parsed.data);
+    const { blueprint, usage } = await createBotBlueprint(parsed.data);
     const { data: project, error: projectError } = await context.supabaseAdmin
       .from("studio_projects")
       .insert({
@@ -173,8 +209,9 @@ export async function POST(request: NextRequest) {
         provider: "OpenClaw Studio Bridge",
         model: getOpenClawModelLabel(),
         preview_message_limit: previewMessageLimit,
+        generation_usage: usage,
       })
-      .select("id, blueprint, created_at, preview_messages_used")
+      .select("id, blueprint, created_at, preview_messages_used, generation_usage")
       .single();
 
     if (projectError || !project) throw new Error("studio_storage_error");
@@ -195,6 +232,12 @@ export async function POST(request: NextRequest) {
           project_id: project.id,
           status: "succeeded",
           duration_ms: Date.now() - startedAt,
+          input_tokens: usage.inputTokens,
+          output_tokens: usage.outputTokens,
+          total_tokens: usage.totalTokens,
+          cached_input_tokens: usage.cachedInputTokens,
+          estimated_cost_usd: usage.estimatedCostUsd,
+          billing_mode: usage.billingMode,
           completed_at: new Date().toISOString(),
         })
         .eq("id", runId);
@@ -207,6 +250,7 @@ export async function POST(request: NextRequest) {
         model: getOpenClawModelLabel(),
         generatedAt: new Date().toISOString(),
         actionsExecuted: false,
+        usage,
       },
     });
   } catch (error) {

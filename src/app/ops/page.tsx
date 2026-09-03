@@ -43,13 +43,17 @@ export default async function OwnerOperationsPage() {
   if (!context?.user) redirect("/auth/sign-in?next=/ops");
   if (!isStudioOwner(context.user)) notFound();
 
-  const [projectsResult, usersResult, runsResult, recentRunsResult] = await Promise.all([
+  const [projectsResult, usersResult, runsResult, usageRunsResult, recentRunsResult] = await Promise.all([
     context.supabaseAdmin.from("studio_projects").select("id", { count: "exact", head: true }),
     context.supabaseAdmin.from("studio_generation_entitlements").select("user_id", { count: "exact", head: true }),
     context.supabaseAdmin.from("studio_generation_runs").select("id", { count: "exact", head: true }),
     context.supabaseAdmin
       .from("studio_generation_runs")
-      .select("id, operation, provider, model, status, error_code, duration_ms, created_at")
+      .select("total_tokens, estimated_cost_usd")
+      .eq("status", "succeeded"),
+    context.supabaseAdmin
+      .from("studio_generation_runs")
+      .select("id, operation, provider, model, status, error_code, duration_ms, total_tokens, estimated_cost_usd, billing_mode, created_at")
       .order("created_at", { ascending: false })
       .limit(8),
   ]);
@@ -63,7 +67,15 @@ export default async function OwnerOperationsPage() {
   ];
 
   const recentRuns = recentRunsResult.data ?? [];
-  const queryFailed = [projectsResult, usersResult, runsResult, recentRunsResult].some((result) => result.error);
+  const usageTotals = (usageRunsResult.data ?? []).reduce(
+    (total, run) => ({
+      tokens: total.tokens + (run.total_tokens ?? 0),
+      estimatedCostUsd: total.estimatedCostUsd + Number(run.estimated_cost_usd ?? 0),
+      itemizedRuns: total.itemizedRuns + (run.estimated_cost_usd === null ? 0 : 1),
+    }),
+    { tokens: 0, estimatedCostUsd: 0, itemizedRuns: 0 },
+  );
+  const queryFailed = [projectsResult, usersResult, runsResult, usageRunsResult, recentRunsResult].some((result) => result.error);
 
   return (
     <main className={styles.shell}>
@@ -88,7 +100,9 @@ export default async function OwnerOperationsPage() {
         <article><span>PROJECTS</span><b>{projectsResult.count ?? "—"}</b></article>
         <article><span>GUEST IDENTITIES</span><b>{usersResult.count ?? "—"}</b></article>
         <article><span>MODEL RUNS</span><b>{runsResult.count ?? "—"}</b></article>
-        <article><span>PUBLIC LIMIT</span><b>1 + 5</b><small>build + preview messages</small></article>
+        <article><span>TOTAL TOKENS</span><b>{usageTotals.tokens.toLocaleString("en-US")}</b></article>
+        <article><span>ITEMIZED COST</span><b>{usageTotals.itemizedRuns ? `$${usageTotals.estimatedCostUsd.toFixed(4)}` : "INCLUDED"}</b><small>Kimi membership quota</small></article>
+        <article><span>TEST BUDGET</span><b>1</b><small>owner blueprint request</small></article>
       </section>
 
       <section className={styles.grid}>
@@ -129,7 +143,7 @@ export default async function OwnerOperationsPage() {
                   <b role="cell">{run.operation}</b>
                   <p role="cell">{run.model}</p>
                   <time role="cell" dateTime={run.created_at}>{formatTimestamp(run.created_at)} UTC</time>
-                  <small role="cell">{run.error_code || (run.duration_ms === null ? "pending" : `${run.duration_ms} ms`)}</small>
+                  <small role="cell">{run.error_code || (run.duration_ms === null ? "pending" : `${run.duration_ms} ms · ${run.total_tokens ?? 0} tok`)}</small>
                 </div>
               ))}
             </div>
@@ -153,7 +167,7 @@ docker compose --profile cli run --rm openclaw-cli security audit --deep`}</code
         <article className={styles.runbook}>
           <header><span>05</span><h2>Release conditions</h2></header>
           <ol>
-            <li>Select and record one exact Kimi Code model after a measured evaluation.</li>
+            <li>Kimi K2.7 Code is selected for the single measured baseline run.</li>
             <li>Keep the raw Gateway on loopback/private Docker networking.</li>
             <li>Expose only the Bridge path through authenticated HTTPS ingress.</li>
             <li>Deny host execution, filesystem, browser, cron, channels, and Gateway mutation.</li>
