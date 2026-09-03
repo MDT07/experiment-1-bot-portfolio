@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Fragment, useEffect, useState } from "react";
-import AiSystemsLab from "@/components/AiSystemsLab";
+import SolutionAtlas from "@/components/SolutionAtlas";
 import type { PortfolioContent, PortfolioScene } from "@/lib/content";
 
 const contactEmail = "emirsemenov@yahoo.com";
@@ -41,9 +41,9 @@ export default function PortfolioExperience({ content }: { content: PortfolioCon
       ? [
           { id: scene.id, index: scene.index, kicker: scene.kicker },
           {
-            id: "live-lab",
-            index: "LAB",
-            kicker: content.locale === "ru" ? "ЖИВАЯ AI-ЛАБОРАТОРИЯ" : "LIVE AI SYSTEMS",
+            id: "solutions",
+            index: "SYS",
+            kicker: content.locale === "ru" ? "КАТАЛОГ СИСТЕМ" : "SYSTEMS CATALOG",
           },
         ]
       : [{ id: scene.id, index: scene.index, kicker: scene.kicker }],
@@ -106,8 +106,8 @@ export default function PortfolioExperience({ content }: { content: PortfolioCon
         </p>
 
         <div className="header-actions">
-          <a className="language-link mono" href="#live-lab">
-            LIVE LAB
+          <a className="language-link mono" href="#solutions">
+            SYSTEMS
           </a>
           <Link className="language-link mono" href={languageHref} hrefLang={content.locale === "en" ? "ru" : "en"}>
             {content.languageLabel}
@@ -293,7 +293,7 @@ export default function PortfolioExperience({ content }: { content: PortfolioCon
               )}
             </section>
 
-            {scene.id === "concepts" && <AiSystemsLab locale={content.locale} embedded />}
+            {scene.id === "concepts" && <SolutionAtlas locale={content.locale} embedded />}
           </Fragment>
         ))}
       </main>

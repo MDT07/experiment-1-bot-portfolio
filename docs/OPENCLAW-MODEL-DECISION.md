@@ -1,5 +1,8 @@
 # OpenClaw / Kimi Code model decision gate
 
+> Archived engineering record. The current public portfolio is a static systems
+> catalog and does not run OpenClaw or a connected model.
+
 Status: **baseline selected — first live measurement reached Kimi but failed with provider HTTP 500**. Updated 2026-09-03.
 
 The selected first-test model is `kimi/kimi-for-coding` (Kimi K2.7 Code). The

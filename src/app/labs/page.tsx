@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import AiSystemsLab from "@/components/AiSystemsLab";
+import SolutionAtlas from "@/components/SolutionAtlas";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
 
 export const metadata: Metadata = {
-  title: "Bot Studio",
-  description: "Design one bounded bot system, inspect its capability graph, and test it in a five-message preview.",
+  title: "Bot & Agent Solution Catalog",
+  description: "Explore eight implementation-ready bot and agent architectures for sales, service, commerce, operations, and knowledge workflows.",
   alternates: {
     canonical: siteUrl ? `${siteUrl}/labs` : undefined,
     languages: siteUrl ? { en: `${siteUrl}/labs`, ru: `${siteUrl}/ru/labs` } : undefined,
@@ -13,5 +13,5 @@ export const metadata: Metadata = {
 };
 
 export default function EnglishLabPage() {
-  return <AiSystemsLab locale="en" />;
+  return <SolutionAtlas locale="en" />;
 }

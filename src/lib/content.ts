@@ -63,9 +63,9 @@ const english: PortfolioContent = {
   locale: "en",
   languageLabel: "RU",
   meta: {
-    title: "Emir Semenov — AI Bot Systems",
+    title: "Emir Semenov — Bot & Agent Systems",
     description:
-      "Experimental portfolio of AI-powered bot systems for Telegram, Instagram, WhatsApp, and connected services.",
+      "Experimental portfolio and implementation catalog for bot and AI-ready agent systems across Telegram, Instagram, WhatsApp, web, and connected services.",
   },
   header: { work: "Nine signals", contact: "Open channel" },
   scenes: [
@@ -158,12 +158,12 @@ const english: PortfolioContent = {
       index: "08",
       media: "/media/original/animation",
       layout: "room",
-      kicker: "CONCEPT LABORATORY",
-      title: "Three systems I would build next.",
+      kicker: "SYSTEMS CATALOG",
+      title: "Eight architectures, ready to scope.",
       body:
-        "Public client cases are not used here. These are original concept studies that expose the platform, task, AI core, integrations, and intended result without invented metrics.",
-      aside: "Concepts, not client claims",
-      tags: ["Service", "Commerce", "Knowledge"],
+        "The catalog turns the visual thesis into concrete business systems: functions, operating routes, stacks, optional model choices, safeguards, and build packages. No live AI connection is implied.",
+      aside: "Prepared blueprints, not client claims",
+      tags: ["Sales", "Service", "Commerce", "Operations", "Knowledge"],
     },
     {
       id: "contact",
@@ -179,8 +179,8 @@ const english: PortfolioContent = {
     },
   ],
   concepts: {
-    label: "Original concept study",
-    disclosure: "No fabricated users, clients, statistics, testimonials, or production results.",
+    label: "Selected architecture preview",
+    disclosure: "Three entries from the eight-system catalog below. No fabricated clients, metrics, or production results.",
     studies: [
       {
         code: "ORBIT / 01",
@@ -229,9 +229,9 @@ const russian: PortfolioContent = {
   locale: "ru",
   languageLabel: "EN",
   meta: {
-    title: "Эмир Семенов — системы AI-ботов",
+    title: "Эмир Семенов — системы ботов и AI-агентов",
     description:
-      "Экспериментальное портфолио AI-ботов для Telegram, Instagram, WhatsApp и подключённых сервисов.",
+      "Экспериментальное портфолио и каталог реализаций ботов и AI-ready агентов для Telegram, Instagram, WhatsApp, web и подключённых сервисов.",
   },
   header: { work: "Девять сигналов", contact: "Открытый канал" },
   scenes: [
@@ -324,12 +324,12 @@ const russian: PortfolioContent = {
       index: "08",
       media: "/media/original/animation",
       layout: "room",
-      kicker: "ЛАБОРАТОРИЯ КОНЦЕПТОВ",
-      title: "Три системы, которые я создал бы следующими.",
+      kicker: "КАТАЛОГ СИСТЕМ",
+      title: "Восемь архитектур, готовых к проработке.",
       body:
-        "Публичные клиентские кейсы здесь не используются. Это авторские концепты, которые показывают платформу, задачу, AI-ядро, интеграции и задуманный результат без выдуманных метрик.",
-      aside: "Концепты, а не клиентские заявления",
-      tags: ["Сервис", "Коммерция", "Знания"],
+        "Каталог превращает визуальную идею в конкретные бизнес-системы: функции, рабочие маршруты, стек, опциональные модели, защитные границы и состав разработки. Активное AI-подключение не подразумевается.",
+      aside: "Подготовленные blueprints, не клиентские заявления",
+      tags: ["Продажи", "Сервис", "Коммерция", "Операции", "Знания"],
     },
     {
       id: "contact",
@@ -345,8 +345,8 @@ const russian: PortfolioContent = {
     },
   ],
   concepts: {
-    label: "Авторское концепт-исследование",
-    disclosure: "Без выдуманных пользователей, клиентов, статистики, отзывов и production-результатов.",
+    label: "Превью выбранной архитектуры",
+    disclosure: "Три позиции из каталога восьми систем ниже. Без выдуманных клиентов, метрик или production-результатов.",
     studies: [
       {
         code: "ORBIT / 01",

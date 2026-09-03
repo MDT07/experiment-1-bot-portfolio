@@ -20,25 +20,25 @@ const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
 export const metadata: Metadata = {
   metadataBase: new URL(configuredUrl || "http://localhost:3100"),
   title: {
-    default: "Emir Semenov — AI Bot Systems",
+    default: "Emir Semenov — Bot & Agent Systems",
     template: "%s | Emir Semenov",
   },
   description:
-    "Experimental portfolio of AI-powered bot systems for Telegram, Instagram, WhatsApp, and connected service channels.",
-  applicationName: "Emir Semenov — Bot Systems",
+    "Experimental portfolio and implementation catalog for bot and AI-ready agent systems across messaging, web, and connected business services.",
+  applicationName: "Emir Semenov — Bot & Agent Systems",
   authors: [{ name: "Emir Semenov", url: "https://github.com/MDT07" }],
   creator: "Emir Semenov",
   openGraph: {
     type: "website",
-    title: "Emir Semenov — AI Bot Systems",
-    description: "Digital operators that communicate, reason, and act.",
-    siteName: "Emir Semenov — Bot Systems",
+    title: "Emir Semenov — Bot & Agent Systems",
+    description: "Eight practical system architectures for bots, assistants, and controlled automation.",
+    siteName: "Emir Semenov — Bot & Agent Systems",
     images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Emir Semenov — AI Bot Systems",
-    description: "Digital operators that communicate, reason, and act.",
+    title: "Emir Semenov — Bot & Agent Systems",
+    description: "Eight practical system architectures for bots, assistants, and controlled automation.",
     images: ["/opengraph-image"],
   },
   robots: { index: true, follow: true },

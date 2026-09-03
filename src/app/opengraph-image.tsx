@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "Emir Semenov — I build digital operators";
+export const alt = "Emir Semenov — Bot and Agent Systems";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -45,14 +45,14 @@ export default function OpenGraphImage() {
         <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
           <div style={{ display: "flex", gap: 18, alignItems: "center", fontSize: 22, letterSpacing: "0.12em" }}>
             <span style={{ color: "#71f5df" }}>E/S</span>
-            <span>EMIR SEMENOV / BOT SYSTEMS</span>
+            <span>EMIR SEMENOV / BOT + AGENT SYSTEMS</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", fontWeight: 650, fontSize: 66, lineHeight: 1.02, letterSpacing: "-0.045em" }}>
-            <span>I BUILD</span>
-            <span style={{ color: "#71f5df" }}>DIGITAL OPERATORS.</span>
+            <span>SYSTEMS BEFORE</span>
+            <span style={{ color: "#71f5df" }}>MODEL CHOICE.</span>
           </div>
           <div style={{ fontSize: 20, letterSpacing: "0.08em", color: "#8b9c98" }}>
-            TELEGRAM · INSTAGRAM · WHATSAPP · CONNECTED SERVICES
+            08 ARCHITECTURES · OPTIONAL AI · CONTROLLED DELIVERY
           </div>
         </div>
       </div>

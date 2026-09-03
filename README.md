@@ -1,7 +1,8 @@
-# Emir Semenov — Bot Systems Portfolio
+# Emir Semenov — Bot & Agent Systems
 
-A bilingual experimental portfolio and bounded Bot Studio for designing bot
-systems across web, Telegram, Instagram, WhatsApp, and concept-only channels.
+A bilingual experimental portfolio and static catalog of prepared bot, assistant,
+and automation architectures for Telegram, Instagram, WhatsApp, Discord, web,
+and connected business services.
 
 ## Local development
 
@@ -11,90 +12,76 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open `http://localhost:3100`. English Bot Studio lives at `/labs`; Russian at
-`/ru/labs`.
+Open `http://localhost:3100`. The English systems catalog is available at
+`/labs`; the Russian version is at `/ru/labs`.
 
-## Bot Studio contract
+## Systems catalog
 
-A signed-in visitor describes one job, behavior, allowed knowledge, and
-operating boundaries. The server returns a validated `BotBlueprint` with a
-preview chat and a connected capability/knowledge graph.
+The public catalog contains eight implementation blueprints:
 
-- GitHub OAuth or email magic link establishes one Supabase identity.
-- A non-owner identity receives exactly one successful generation.
-- Provider/storage failures release the reservation and do not consume it.
-- A guest project receives five atomic preview-message claims.
-- The owner email receives unlimited builds and preview messages.
-- No preview executes channel actions, tools, webhooks, or external writes.
-- Supabase RLS isolates every guest project, message, entitlement, and run.
+1. Lead qualification concierge
+2. Grounded support desk
+3. Social commerce guide
+4. Booking and schedule coordinator
+5. Private knowledge operator
+6. Document intake and onboarding
+7. Community and content operator
+8. Executive analytics copilot
 
-The first measured baseline uses Kimi K2.7 Code through the exact OpenClaw ref
-`kimi/kimi-for-coding`. Its initial release is owner-only, capped at one
-blueprint request, and keeps preview chat disabled. No model provider key or
-OpenClaw operator credential belongs in this Vercel project.
+Each blueprint documents the business audience, intended outcome, conversation
+or operating route, functional scope, application/data/operations stack,
+integration surface, production controls, and concrete delivery package.
+
+Model providers are presented only as optional architecture choices. The public
+site performs no model calls, stores no prompts, offers no sign-in, and contains
+no provider, OpenClaw, Supabase, or channel credentials. A real client build
+would select a model only after evaluation against task quality, latency, cost,
+privacy, and regional availability.
+
+Model names shown in the catalog were checked on 3 September 2026 against the
+official [OpenAI](https://developers.openai.com/api/docs/models),
+[Anthropic](https://platform.claude.com/docs/en/models/overview),
+[Google Gemini](https://ai.google.dev/gemini-api/docs/models), and
+[Mistral AI](https://docs.mistral.ai/models) catalogs. They are dated references,
+not promises of future availability.
 
 ## Architecture
 
 ```text
-Browser
-  ├─ Supabase Auth → GitHub OAuth / email magic link
-  └─ Vercel /api/labs/*
-       ├─ schema validation + same-origin gate
-       ├─ Supabase RLS + atomic one-shot/message quota
-       └─ authenticated Studio Bridge → private OpenClaw Gateway
-                                      → selected Kimi Code model
-
-Owner browser
-  └─ Vercel /ops → exact owner identity + read-only telemetry
-
-Private owner runtime
-  ├─ narrow HTTPS Studio Bridge → text-only validated requests
-  └─ private OpenClaw Gateway → isolated Studio agent → Kimi Code
+Next.js portfolio
+  ├─ nine-scene cinematic showcase
+  ├─ client-side solution filters
+  ├─ eight static architecture blueprints
+  ├─ public Privacy Policy and Terms
+  └─ no auth, database, AI runtime, or external write actions
 ```
 
-Vercel cannot host the always-on OpenClaw Gateway. The hardened deployment kit
-is in `infra/openclaw`; it keeps the raw Gateway private, exposes only a narrow
-text-only Bridge through a separately authenticated ingress, and keeps all
-channels and powerful tools disabled. The Gateway token and `KIMI_API_KEY` stay
-on the persistent host. Vercel receives only the separate Bridge token.
+The app intentionally uses React state only for temporary catalog selection and
+filtering. No selection is written to local storage or transmitted to a project
+database.
 
-## Supabase setup
+## Verification
 
-This project accepts only modern Supabase keys:
+```bash
+npm run typecheck
+npm run lint
+npm test
+npm run build
+```
 
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (`sb_publishable_…`)
-- `SUPABASE_SECRET_KEY` (`sb_secret_…`, server-only)
-- `STUDIO_OWNER_USER_ID` (immutable Supabase Auth UUID)
-- `STUDIO_OWNER_EMAIL`
+The catalog tests verify unique IDs/codes, localized coverage, deterministic or
+optional model paths, production controls, delivery scope, and provider variety.
 
-Apply `supabase/migrations/202609020001_bot_studio.sql`, then configure these
-Auth redirect URLs exactly:
+## Deployment
+
+Set only the canonical public URL:
 
 ```text
-http://localhost:3100/auth/callback
-https://experiment-1-bot-portfolio.vercel.app/auth/callback
+NEXT_PUBLIC_SITE_URL=https://experiment-1-bot-portfolio.vercel.app
 ```
 
-Enable GitHub OAuth only after its client ID/secret is stored in Supabase. Email
-magic-link auth works as the lower-setup identity path. Never put the secret key
-in a `NEXT_PUBLIC_` variable.
-
-## Deployment gate
-
-1. Apply the database migration and run the SQL policy tests.
-2. Verify the selected `kimi/kimi-for-coding` model is visible to the account;
-   do not infer availability from the key format alone.
-3. Bootstrap the persistent OpenClaw host from `infra/openclaw`, then expose
-   only the Bridge port through authenticated HTTPS ingress.
-4. Add the Bridge URL/token and model label to Vercel without committing an
-   `.env` file. Keep `AI_DEMO_PUBLIC=false` during setup.
-5. Verify sign-in, one successful guest build, blocked second build, five chat
-   messages, owner bypass, `/ops` denial for non-owners, and logout.
-6. Protect `/api/labs/*` with a platform rate-limit rule.
-7. For the first measurement set `AI_DEMO_PUBLIC=true`,
-   `AI_DEMO_OWNER_ONLY=true`, `AI_DEMO_RUN_LIMIT=1`, and
-   `AI_DEMO_CHAT_ENABLED=false`; redeploy and run one production blueprint.
+No AI or database environment variables are required. Vercel remains the public
+host; the repository is the source of truth.
 
 ## Media provenance and quality
 
@@ -103,3 +90,10 @@ MDT07 Reference Studio board “Web references #1 AI bots”. They are shown as
 visual research, not claimed as client work or original authorship. Original GIF
 copies live in `public/media/original`; reduced-motion visitors receive static
 first frames.
+
+## Historical runtime notes
+
+`docs/KIMI-LIVE-TEST-2026-09-03.md` and
+`docs/OPENCLAW-MODEL-DECISION.md` record an earlier isolated runtime experiment.
+They are retained as engineering history and do not describe the current public
+application.

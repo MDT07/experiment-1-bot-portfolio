@@ -1,5 +1,9 @@
 # Kimi live Studio test — 2026-09-03
 
+> Archived engineering record. The current public portfolio is a static systems
+> catalog and contains no Kimi, OpenClaw, Supabase, authentication, or model-call
+> integration.
+
 ## Result
 
 - Production surface: `https://experiment-1-bot-portfolio.vercel.app/ru/labs`
