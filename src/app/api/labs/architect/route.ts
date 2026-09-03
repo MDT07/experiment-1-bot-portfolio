@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { studioBriefSchema, type BotBlueprint, type StudioProject, type StudioStatus } from "@/lib/bot-studio";
-import { createBotBlueprint, getNvidiaModel, NvidiaLabError } from "@/lib/nvidia";
+import {
+  createBotBlueprint,
+  getOpenClawModelLabel,
+  isOpenClawStudioConfigured,
+  OpenClawLabError,
+} from "@/lib/openclaw";
 import {
   createStudioContext,
   isStudioOwner,
@@ -33,7 +38,7 @@ function isAllowedOrigin(request: NextRequest): boolean {
 }
 
 function providerError(error: unknown) {
-  if (error instanceof NvidiaLabError) return json({ error: error.code }, error.status);
+  if (error instanceof OpenClawLabError) return json({ error: error.code }, error.status);
   return json({ error: "provider_error" }, 502);
 }
 
@@ -56,14 +61,14 @@ function asProject(row: ProjectRow | null): StudioProject | null {
 
 export async function GET() {
   const base = {
-    configured: Boolean(process.env.NVIDIA_API_KEY) && isStudioSupabaseConfigured(),
+    configured: isOpenClawStudioConfigured() && isStudioSupabaseConfigured(),
     public: process.env.AI_DEMO_PUBLIC === "true",
     signedIn: false,
     owner: false,
     generationAvailable: false,
     previewMessageLimit,
-    provider: "NVIDIA NIM",
-    model: getNvidiaModel(),
+    provider: "OpenClaw Studio Bridge",
+    model: getOpenClawModelLabel(),
     project: null,
   } satisfies StudioStatus;
 
@@ -111,7 +116,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   if (!isAllowedOrigin(request)) return json({ error: "origin_not_allowed" }, 403);
   if (process.env.AI_DEMO_PUBLIC !== "true") return json({ error: "demo_not_open" }, 503);
-  if (!process.env.NVIDIA_API_KEY) return json({ error: "provider_not_configured" }, 503);
+  if (!isOpenClawStudioConfigured()) return json({ error: "provider_not_configured" }, 503);
   if (!isStudioSupabaseConfigured()) return json({ error: "studio_storage_not_configured" }, 503);
 
   const contentLength = Number(request.headers.get("content-length") || 0);
@@ -149,8 +154,8 @@ export async function POST(request: NextRequest) {
     .insert({
       owner_user_id: context.user.id,
       operation: "blueprint",
-      provider: "NVIDIA NIM",
-      model: getNvidiaModel(),
+      provider: "OpenClaw Studio Bridge",
+      model: getOpenClawModelLabel(),
       status: "started",
     })
     .select("id")
@@ -165,8 +170,8 @@ export async function POST(request: NextRequest) {
         owner_user_id: context.user.id,
         brief: parsed.data,
         blueprint,
-        provider: "NVIDIA NIM",
-        model: getNvidiaModel(),
+        provider: "OpenClaw Studio Bridge",
+        model: getOpenClawModelLabel(),
         preview_message_limit: previewMessageLimit,
       })
       .select("id, blueprint, created_at, preview_messages_used")
@@ -198,8 +203,8 @@ export async function POST(request: NextRequest) {
     return json({
       project: asProject(project as ProjectRow),
       meta: {
-        provider: "NVIDIA NIM",
-        model: getNvidiaModel(),
+        provider: "OpenClaw Studio Bridge",
+        model: getOpenClawModelLabel(),
         generatedAt: new Date().toISOString(),
         actionsExecuted: false,
       },
@@ -219,7 +224,7 @@ export async function POST(request: NextRequest) {
         .from("studio_generation_runs")
         .update({
           status: "failed",
-          error_code: error instanceof NvidiaLabError ? error.code : "studio_generation_error",
+          error_code: error instanceof OpenClawLabError ? error.code : "studio_generation_error",
           duration_ms: Date.now() - startedAt,
           completed_at: new Date().toISOString(),
         })

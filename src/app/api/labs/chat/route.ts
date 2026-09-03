@@ -5,7 +5,7 @@ import {
   studioChatRequestSchema,
   type StudioBrief,
 } from "@/lib/bot-studio";
-import { chatWithBot, getNvidiaModel, NvidiaLabError } from "@/lib/nvidia";
+import { chatWithBot, getOpenClawModelLabel, OpenClawLabError } from "@/lib/openclaw";
 import {
   createStudioContext,
   isStudioOwner,
@@ -71,8 +71,8 @@ export async function POST(request: NextRequest) {
     if (!claimed) return json({ error: "preview_limit_reached" }, 429);
   }
 
-  const provider = blueprint.mode === "rules" ? "Rules preview" : "NVIDIA NIM";
-  const model = blueprint.mode === "rules" ? "deterministic-v1" : getNvidiaModel();
+  const provider = blueprint.mode === "rules" ? "Rules preview" : "OpenClaw Studio Bridge";
+  const model = blueprint.mode === "rules" ? "deterministic-v1" : getOpenClawModelLabel();
   const startedAt = Date.now();
   const { data: run } = await context.supabaseAdmin
     .from("studio_generation_runs")
@@ -137,13 +137,13 @@ export async function POST(request: NextRequest) {
         .from("studio_generation_runs")
         .update({
           status: "failed",
-          error_code: error instanceof NvidiaLabError ? error.code : "studio_chat_error",
+          error_code: error instanceof OpenClawLabError ? error.code : "studio_chat_error",
           duration_ms: Date.now() - startedAt,
           completed_at: new Date().toISOString(),
         })
         .eq("id", run.id);
     }
-    if (error instanceof NvidiaLabError) return json({ error: error.code }, error.status);
+    if (error instanceof OpenClawLabError) return json({ error: error.code }, error.status);
     if (error instanceof Error && error.message.startsWith("studio_")) {
       return json({ error: error.message }, 503);
     }

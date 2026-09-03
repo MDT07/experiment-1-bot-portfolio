@@ -1,83 +1,116 @@
-# Isolated OpenClaw runtime — Experiment 01
+# Isolated OpenClaw Studio runtime — Experiment 01
 
-This directory is a deployment kit, not a Vercel application. OpenClaw owns
-long-lived WebSocket connections, state, sessions, plugin installs, and model
-authentication, so it runs on a persistent host. Vercel hosts the public Bot
-Studio, its bounded inference API, and the owner-authenticated `/ops` surface.
+This directory prepares the persistent runtime for Bot Studio. It is not a
+Vercel application: OpenClaw owns long-lived state, sessions, plugins, and model
+authentication, so it must run on a persistent Linux host or an always-on local
+machine.
 
-## Runtime boundary
+The exact Kimi Code model and API key are intentionally absent. Do not start a
+live inference test until the model decision in
+`../../docs/OPENCLAW-MODEL-DECISION.md` is complete.
+
+## Trust boundary
 
 ```text
-Public visitor → Vercel Bot Studio → NVIDIA NIM (one build + five messages)
-
-Owner → identity-aware private ingress → OpenClaw Gateway
-      → isolated Experiment 01 profile → Kimi Code
+Browser
+  → Vercel /api/labs/*
+  → HTTPS ingress
+  → Studio Bridge :8787 (separate bearer token, strict text schema)
+  → OpenClaw Gateway :18789 (private Docker network + host loopback)
+  → openclaw/studio agent
+  → selected Kimi Code model
 ```
 
-The public site cannot call OpenClaw. The container publishes the Gateway to
-host loopback only. Do not change the Compose mapping to `0.0.0.0`; remote
-access belongs to Tailscale Serve or Cloudflare Tunnel + Access.
+The raw Gateway HTTP API treats its shared token as operator access. It must not
+be exposed to the public internet. Vercel receives only the separate
+`OPENCLAW_BRIDGE_TOKEN`; the Bridge holds the Gateway token locally and forwards
+only bounded, non-streaming requests with no client tools.
 
-## Why `kimi/kimi-for-coding`
+The Bridge permits exactly one path, caps request size/tokens, allows one
+in-flight request, and applies a global requests-per-minute ceiling. It does not
+enable browser CORS, log prompt content, expose model credentials, or proxy any
+Gateway administration/tool route.
 
-The Gateway uses Kimi Coding, not the Moonshot pay-as-you-go provider. They use
-different keys, endpoints, plugins, and model prefixes. `kimi/kimi-for-coding`
-is the conservative membership model available across Kimi Code plans. K3 is
-not selected automatically: `kimi/k3` is tier-gated and `kimi/k3-256k` consumes
-more valuable quota. Upgrade only after a measured evaluation justifies it.
+## Prepared files
 
-Current source of truth:
+- `docker-compose.yml` — Gateway, setup CLI, operations CLI, and Studio Bridge.
+- `openclaw.example.json5` — model-agnostic Studio agent with tools/channels
+  denied and 24-hour inactive-session pruning.
+- `bridge/server.mjs` — dependency-free narrow relay to OpenClaw Chat
+  Completions.
+- `.env.example` — names only; no credentials or selected model.
 
-- https://docs.openclaw.ai/providers/moonshot
-- https://www.kimi.com/code/console
-
-## Bootstrap
+## Bootstrap without inference
 
 1. Provision a persistent Linux host with Docker Compose v2 and at least 2 GB
-   RAM. A local Mac is suitable for private testing but must stay online.
-2. Copy `.env.example` to `.env` on that host. Set dedicated state directories,
-   a generated Gateway token, and the Kimi Code membership key.
-3. Copy `openclaw.example.json5` to
-   `${OPENCLAW_CONFIG_DIR}/openclaw.json`. Keep its tool denials intact.
-4. Install the official external Kimi provider into this isolated state volume:
+   RAM. Keep firewall ingress closed while preparing it.
+2. Copy `.env.example` to `.env` on that host. Set fully resolved host paths.
+3. Generate two different random credentials on the host:
+   `OPENCLAW_GATEWAY_TOKEN` and `OPENCLAW_BRIDGE_TOKEN`.
+4. Copy `openclaw.example.json5` to
+   `${OPENCLAW_CONFIG_DIR}/openclaw.json`.
+5. Install the official Kimi provider into the isolated state volume:
 
 ```bash
-docker compose --profile cli run --rm openclaw-cli \
+docker compose run --rm openclaw-setup \
   plugins install @openclaw/kimi-provider
 ```
 
-5. Validate configuration and model discovery before starting channels:
+Stop here until the model decision is approved. Provider installation does not
+require a live model call.
+
+## Activation after model selection
+
+1. Put the Kimi Code credential in host `.env` as `KIMI_API_KEY`.
+2. Put the chosen exact `provider/model` ref in host `.env` as
+   `OPENCLAW_MODEL`.
+3. Validate config and start both private services:
 
 ```bash
-docker compose --profile cli run --rm openclaw-cli config validate
-docker compose up -d openclaw-gateway
-docker compose --profile cli run --rm openclaw-cli models list --provider kimi
+docker compose run --rm openclaw-setup config validate
+docker compose up -d --build openclaw-gateway studio-bridge
 docker compose --profile cli run --rm openclaw-cli gateway probe
 docker compose --profile cli run --rm openclaw-cli security audit --deep
 ```
 
-6. Run one owner-only smoke test. The result must identify provider `kimi` and
-   model `kimi-for-coding`; do not paste the key into a command argument or log.
+The deep audit must have zero critical findings. Review every warning instead
+of suppressing it.
 
-The security audit must have zero critical findings. Each warning needs an
-explicit accept/reject decision.
+4. Publish only host port `8787` through an authenticated HTTPS reverse proxy or
+   tunnel. Never publish port `18789`; both Compose mappings remain loopback.
+5. Configure Vercel with:
 
-## Channels and tools
+```text
+OPENCLAW_BRIDGE_URL=https://your-private-bridge-origin.example
+OPENCLAW_BRIDGE_TOKEN=<the bridge token, not the Gateway token>
+OPENCLAW_MODEL_LABEL=<the reviewed non-secret model ref>
+AI_DEMO_PUBLIC=false
+```
 
-Telegram stays disabled in the template. Before enabling any channel:
+6. Run a controlled owner-only end-to-end test, quota/RLS tests, and failure
+   recovery tests. Only then set `AI_DEMO_PUBLIC=true` and redeploy.
 
-- create a dedicated demo bot/account;
-- use pairing plus an explicit owner allowlist;
-- reject every unknown DM and group by default;
-- keep host exec, filesystem, browser, cron, Gateway mutation, and elevated
-  tools denied;
-- add one permission at a time only for a demonstrated owner workflow;
-- require human approval before any future external write action.
+## Provider boundary
 
-## Vercel `/ops`
+This kit installs `@openclaw/kimi-provider` for the Kimi Coding provider. Kimi
+Coding and Moonshot pay-as-you-go use different provider prefixes, endpoints,
+and credentials; never assume their keys are interchangeable. The selected
+model remains an environment value rather than a Git-tracked default.
 
-`/ops` is protected by Supabase identity and an exact owner-email match. It
-shows quotas, model-run telemetry, and readiness configuration. It is not a
-reverse proxy and does not make the Gateway public. `OPENCLAW_GATEWAY_TOKEN`
-is reserved for a future narrow, read-only RPC integration; it is not sent to
-the browser by the current implementation.
+Primary documentation:
+
+- https://docs.openclaw.ai/gateway/openai-http-api
+- https://docs.openclaw.ai/gateway/security
+- https://docs.openclaw.ai/plugins/reference/kimi
+- https://docs.openclaw.ai/providers/moonshot
+
+## Tools, channels, and retention
+
+- The Studio agent has no filesystem, shell, browser, cron, node, channel, or
+  Gateway-management tool.
+- Telegram and every other external channel remain disabled.
+- External write actions are not implemented by this environment.
+- Requests are stateless at the Bridge boundary. OpenClaw session maintenance
+  prunes inactive records after 24 hours and caps session storage.
+- Supabase remains the source of truth for identity, one-shot entitlements,
+  projects, preview messages, and application telemetry.

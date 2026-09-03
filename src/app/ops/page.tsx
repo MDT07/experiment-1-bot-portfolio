@@ -19,7 +19,7 @@ function configured(name: string): boolean {
 }
 
 function gatewayLabel(): string {
-  const value = process.env.OPENCLAW_GATEWAY_URL;
+  const value = process.env.OPENCLAW_BRIDGE_URL;
   if (!value) return "Not connected";
   try {
     return new URL(value).host;
@@ -55,11 +55,11 @@ export default async function OwnerOperationsPage() {
   ]);
 
   const checks = [
-    { label: "Public NIM provider", ready: configured("NVIDIA_API_KEY") },
-    { label: "Bot Studio exposure", ready: process.env.AI_DEMO_PUBLIC === "true" },
     { label: "Supabase identity + RLS", ready: isStudioSupabaseConfigured() },
-    { label: "OpenClaw gateway target", ready: configured("OPENCLAW_GATEWAY_URL") },
-    { label: "OpenClaw service credential", ready: configured("OPENCLAW_GATEWAY_TOKEN") },
+    { label: "OpenClaw Studio Bridge", ready: configured("OPENCLAW_BRIDGE_URL") },
+    { label: "Bridge service credential", ready: configured("OPENCLAW_BRIDGE_TOKEN") },
+    { label: "Reviewed model selection", ready: configured("OPENCLAW_MODEL_LABEL") },
+    { label: "Bot Studio exposure", ready: process.env.AI_DEMO_PUBLIC === "true" },
   ];
 
   const recentRuns = recentRunsResult.data ?? [];
@@ -79,7 +79,7 @@ export default async function OwnerOperationsPage() {
         <p>EXPERIMENT 01 / PRIVATE CONTROL PLANE</p>
         <h1>Observe usage. Keep agent execution isolated.</h1>
         <div className={styles.heroMeta}>
-          <span>Gateway target</span>
+          <span>Studio Bridge target</span>
           <b>{gatewayLabel()}</b>
         </div>
       </section>
@@ -110,8 +110,9 @@ export default async function OwnerOperationsPage() {
           <dl>
             <div><dt>Public site</dt><dd>Vercel / bounded UI and API only</dd></div>
             <div><dt>Guest identity</dt><dd>Supabase Auth / isolated by RLS</dd></div>
+            <div><dt>Ingress</dt><dd>Narrow Studio Bridge / no browser access</dd></div>
             <div><dt>Agent runtime</dt><dd>Dedicated OpenClaw profile / persistent host</dd></div>
-            <div><dt>Owner model</dt><dd>Kimi Code / kimi-for-coding</dd></div>
+            <div><dt>Selected model</dt><dd>{process.env.OPENCLAW_MODEL_LABEL || "Pending evaluation"}</dd></div>
             <div><dt>Write policy</dt><dd>Disabled until explicit human approval</dd></div>
           </dl>
         </article>
@@ -139,23 +140,24 @@ export default async function OwnerOperationsPage() {
 
         <article className={styles.runbook}>
           <header><span>04</span><h2>Isolated gateway bootstrap</h2></header>
-          <pre><code>{`openclaw --profile experiment-1 config validate
-openclaw --profile experiment-1 security audit --deep
-openclaw --profile experiment-1 gateway run`}</code></pre>
+          <pre><code>{`docker compose run --rm openclaw-setup plugins install @openclaw/kimi-provider
+docker compose run --rm openclaw-setup config validate
+docker compose up -d --build openclaw-gateway studio-bridge
+docker compose --profile cli run --rm openclaw-cli security audit --deep`}</code></pre>
           <p>
-            The owner profile uses a separate state directory and Kimi Code credential. Vercel shows control-plane
-            state; it does not host the persistent OpenClaw process.
+            Kimi credentials and the operator-level Gateway token stay on the persistent host. Vercel receives only
+            the separately scoped Bridge token and never exposes it to the browser.
           </p>
         </article>
 
         <article className={styles.runbook}>
           <header><span>05</span><h2>Release conditions</h2></header>
           <ol>
-            <li>Pair only the owner account and a dedicated demo channel.</li>
-            <li>Reject unknown direct messages and all groups by default.</li>
-            <li>Deny host execution, filesystem write, browser, cron, and gateway mutation.</li>
-            <li>Keep model and channel credentials in the persistent runtime secret provider.</li>
-            <li>Require a clean deep security audit before remote access is enabled.</li>
+            <li>Select and record one exact Kimi Code model after a measured evaluation.</li>
+            <li>Keep the raw Gateway on loopback/private Docker networking.</li>
+            <li>Expose only the Bridge path through authenticated HTTPS ingress.</li>
+            <li>Deny host execution, filesystem, browser, cron, channels, and Gateway mutation.</li>
+            <li>Require a clean deep security audit before AI_DEMO_PUBLIC is enabled.</li>
           </ol>
         </article>
       </section>

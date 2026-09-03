@@ -6,10 +6,24 @@
     auth: {
       mode: "token",
       token: { source: "env", provider: "default", id: "OPENCLAW_GATEWAY_TOKEN" },
+      rateLimit: {
+        maxAttempts: 10,
+        windowMs: 60000,
+        lockoutMs: 300000,
+        exemptLoopback: false,
+      },
+    },
+    http: {
+      endpoints: {
+        chatCompletions: {
+          enabled: true,
+          maxBodyBytes: 32768,
+          images: { allowUrl: false },
+        },
+      },
     },
     controlUi: {
-      // Add the exact identity-aware proxy origin before remote access is enabled.
-      allowedOrigins: ["http://127.0.0.1:18789"],
+      enabled: false,
     },
   },
 
@@ -22,47 +36,44 @@
 
   agents: {
     defaults: {
-      model: { primary: "kimi/kimi-for-coding" },
-      models: {
-        "kimi/kimi-for-coding": { alias: "Kimi Code" },
-      },
+      // No default is selected in Git. Set OPENCLAW_MODEL only after evaluation.
+      model: { primary: "${OPENCLAW_MODEL}" },
       maxConcurrent: 1,
       sandbox: {
-        // With the minimal tool profile this is a defense-in-depth boundary.
-        // Do not enable filesystem/runtime tools until the sandbox backend passes its own test.
-        mode: "all",
-        scope: "session",
+        // This agent has no tools; do not mount a Docker socket into the Gateway.
+        mode: "off",
         workspaceAccess: "none",
+      },
+    },
+    entries: {
+      studio: {
+        default: true,
+        identity: {
+          name: "Studio Architect",
+          theme: "bounded bot-system design",
+        },
       },
     },
   },
 
   tools: {
     profile: "minimal",
-    deny: [
-      "apply_patch",
-      "browser",
-      "canvas",
-      "cron",
-      "edit",
-      "exec",
-      "gateway",
-      "nodes",
-      "process",
-      "read",
-      "write",
-      "group:fs",
-      "group:runtime",
-    ],
+    deny: ["*"],
     elevated: { enabled: false },
-    exec: { mode: "deny" },
+    exec: { security: "deny", ask: "always" },
   },
 
-  channels: {
-    telegram: {
-      enabled: false,
-      dmPolicy: "pairing",
-      groupPolicy: "disabled",
+  session: {
+    maintenance: {
+      mode: "enforce",
+      pruneAfter: "24h",
+      archiveDashboardAfter: false,
+      maxEntries: 500,
+      resetArchiveRetention: "24h",
+      maxDiskBytes: "250mb",
+      highWaterBytes: "200mb",
     },
   },
+
+  channels: {},
 }
