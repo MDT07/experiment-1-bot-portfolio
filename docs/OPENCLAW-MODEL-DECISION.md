@@ -1,11 +1,12 @@
 # OpenClaw / Kimi Code model decision gate
 
-Status: **baseline selected — live measurement pending**. Updated 2026-09-03.
+Status: **baseline selected — first live measurement reached Kimi but failed with provider HTTP 500**. Updated 2026-09-03.
 
 The selected first-test model is `kimi/kimi-for-coding` (Kimi K2.7 Code). The
 first release is owner-only, capped at one blueprint request, and has preview
-chat disabled. A key format does not prove availability, so the live site test
-remains the final account-access check.
+chat disabled. The first live request reached the correct Kimi Code endpoint,
+but Kimi returned HTTP 500 and no usage payload. See
+`KIMI-LIVE-TEST-2026-09-03.md` before authorizing another attempt.
 
 ## Candidate references
 

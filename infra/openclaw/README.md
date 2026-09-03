@@ -10,6 +10,10 @@ absent from Git and belongs only on the runtime host. Do not run inference from
 the command line: the first measured request must originate from the live
 Studio after the security checks pass.
 
+OpenClaw `2026.8.2` owns a default transient retry budget. One logical Studio
+run can therefore produce up to four provider attempts during an outage; count
+those attempts in incident review even when Kimi returns no token usage.
+
 ## Trust boundary
 
 ```text
