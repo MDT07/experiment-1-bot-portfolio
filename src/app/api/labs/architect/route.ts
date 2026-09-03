@@ -110,12 +110,22 @@ export async function GET() {
       .limit(1)
       .maybeSingle();
     projectRow = data as ProjectRow | null;
+
+    let ownerRunQuery = context.supabaseAdmin
+      .from("studio_generation_runs")
+      .select("id", { count: "exact", head: true })
+      .eq("operation", "blueprint");
+    const runWindowStart = modelRunWindowStart();
+    if (runWindowStart) ownerRunQuery = ownerRunQuery.gte("created_at", runWindowStart);
+    const { count, error } = await ownerRunQuery;
+    generationAvailable = !error && (count ?? 0) < modelRunLimit();
   } else {
     const { data: entitlement } = await context.supabase
       .from("studio_generation_entitlements")
       .select("state, project_id")
       .maybeSingle();
-    generationAvailable = !entitlement || entitlement.state === "available";
+    generationAvailable = process.env.AI_DEMO_OWNER_ONLY !== "true"
+      && (!entitlement || entitlement.state === "available");
     if (entitlement?.project_id) {
       const { data } = await context.supabase
         .from("studio_projects")

@@ -41,13 +41,13 @@ const copy = {
   en: {
     eyebrow: "EXPERIMENT 01 / BOT CONSTRUCTION SYSTEM",
     title: "Describe one job. Leave with one working bot blueprint.",
-    intro: "A verified visitor gets one successful construction run and five preview messages. The result is a bounded studio artifact—not a claim that external channels are already connected.",
+    intro: "This measured owner test allows one bot-blueprint construction. Preview chat and every external action stay disabled; the result is a bounded Studio artifact.",
     status: "System state",
     ready: "Ready",
     closed: "Closed",
     signIn: "Verify identity",
     signOut: "Sign out",
-    owner: "Owner / unlimited",
+    owner: "Owner / one measured run",
     guest: "Guest / one build",
     used: "Generation already used",
     setup: "Studio is closed while the OpenClaw Gateway and exact Kimi Code model are being reviewed.",
@@ -74,7 +74,7 @@ const copy = {
     next: "Continue",
     generate: "Construct bot studio",
     generating: "Model is constructing the system…",
-    oneShot: "A failed provider run does not consume your generation.",
+    oneShot: "One provider attempt is available. Token usage and any provider-reported charge are recorded.",
     studio: "Generated studio",
     newBuild: "New owner build",
     chat: "Preview channel",
@@ -113,11 +113,11 @@ const copy = {
       provider_not_configured: "The OpenClaw runtime and reviewed model are not connected yet.",
       provider_auth_error: "The private Studio Bridge could not authenticate to its runtime.",
       provider_network_error: "The private Studio Bridge is temporarily unreachable.",
-      studio_storage_error: "The studio could not persist this run. Your generation remains available.",
-      provider_timeout: "The model did not finish in the demo timeout. Your generation remains available.",
-      provider_unavailable: "The model is temporarily unavailable. Your generation remains available.",
-      provider_request_rejected: "The selected model rejected this request. Your generation remains available.",
-      invalid_response: "The model returned an invalid blueprint. Your generation remains available.",
+      studio_storage_error: "The studio could not persist this run. Diagnostics were recorded.",
+      provider_timeout: "The model did not finish in the demo timeout. The measured attempt was recorded.",
+      provider_unavailable: "The model is temporarily unavailable. The measured attempt was recorded.",
+      provider_request_rejected: "The selected model rejected this request. The measured attempt was recorded.",
+      invalid_response: "The model returned an invalid blueprint. The measured attempt was recorded.",
       rate_limited: "The model or demo budget is temporarily rate-limited.",
       owner_test_only: "The first measured test is restricted to the owner account.",
       test_budget_exhausted: "The single-request test budget has already been used.",
@@ -128,13 +128,13 @@ const copy = {
   ru: {
     eyebrow: "ЭКСПЕРИМЕНТ 01 / СИСТЕМА КОНСТРУИРОВАНИЯ БОТОВ",
     title: "Опишите одну задачу. Получите рабочий blueprint бота.",
-    intro: "Подтверждённый посетитель получает одну успешную сборку и пять сообщений для проверки. Результат — ограниченный Studio-артефакт, а не заявление о подключённых внешних каналах.",
+    intro: "Этот измеряемый owner-тест разрешает одну сборку blueprint бота. Preview-чат и любые внешние действия выключены; результат остаётся ограниченным Studio-артефактом.",
     status: "Состояние системы",
     ready: "Готово",
     closed: "Закрыто",
     signIn: "Подтвердить личность",
     signOut: "Выйти",
-    owner: "Владелец / без лимита",
+    owner: "Владелец / один измеряемый запуск",
     guest: "Гость / одна сборка",
     used: "Генерация уже использована",
     setup: "Studio закрыта, пока мы проверяем OpenClaw Gateway и выбираем точную модель Kimi Code.",
@@ -161,7 +161,7 @@ const copy = {
     next: "Продолжить",
     generate: "Создать Bot Studio",
     generating: "Модель конструирует систему…",
-    oneShot: "Ошибка provider не расходует вашу генерацию.",
+    oneShot: "Доступна одна попытка provider. Токены и возвращённое провайдером списание будут записаны.",
     studio: "Созданная студия",
     newBuild: "Новая owner-сборка",
     chat: "Preview-канал",
@@ -200,11 +200,11 @@ const copy = {
       provider_not_configured: "OpenClaw runtime и проверенная модель пока не подключены.",
       provider_auth_error: "Закрытый Studio Bridge не смог авторизоваться в runtime.",
       provider_network_error: "Закрытый Studio Bridge временно недоступен.",
-      studio_storage_error: "Studio не смогла сохранить запуск. Генерация остаётся доступной.",
-      provider_timeout: "Модель не завершила запрос вовремя. Генерация остаётся доступной.",
-      provider_unavailable: "Модель временно недоступна. Генерация остаётся доступной.",
-      provider_request_rejected: "Выбранная модель отклонила запрос. Генерация остаётся доступной.",
-      invalid_response: "Модель вернула некорректный blueprint. Генерация остаётся доступной.",
+      studio_storage_error: "Studio не смогла сохранить запуск. Диагностика записана.",
+      provider_timeout: "Модель не завершила запрос вовремя. Измеряемая попытка записана.",
+      provider_unavailable: "Модель временно недоступна. Измеряемая попытка записана.",
+      provider_request_rejected: "Выбранная модель отклонила запрос. Измеряемая попытка записана.",
+      invalid_response: "Модель вернула некорректный blueprint. Измеряемая попытка записана.",
       rate_limited: "Временный rate limit модели или demo-бюджета.",
       owner_test_only: "Первый измеренный тест доступен только аккаунту владельца.",
       test_budget_exhausted: "Лимит теста из одного запроса уже использован.",
@@ -340,7 +340,7 @@ export default function AiSystemsLab({ locale, embedded = false }: AiSystemsLabP
       setProject(data.project);
       setMessages([{ role: "assistant", content: data.project.blueprint.greeting }]);
       setRemaining(status?.owner ? null : status?.previewMessageLimit ?? 5);
-      setStatus((current) => current ? { ...current, generationAvailable: current.owner, project: data.project! } : current);
+      setStatus((current) => current ? { ...current, generationAvailable: false, project: data.project! } : current);
     } catch {
       setError(text.errors.unknown);
     } finally {
@@ -502,7 +502,7 @@ export default function AiSystemsLab({ locale, embedded = false }: AiSystemsLabP
             <div><p>{text.studio} / {project.id.slice(0, 8)}</p><h1>{project.blueprint.name}</h1></div>
             <p>{project.blueprint.oneLine}</p>
             <div className={styles.studioActions}>
-              {status?.owner && <button type="button" onClick={() => { setProject(null); setMessages([]); setStep(0); }}>{text.newBuild}</button>}
+              {status?.owner && status.generationAvailable && <button type="button" onClick={() => { setProject(null); setMessages([]); setStep(0); }}>{text.newBuild}</button>}
               <form action="/auth/sign-out" method="post"><button type="submit">{text.signOut}</button></form>
             </div>
           </header>
@@ -532,7 +532,7 @@ export default function AiSystemsLab({ locale, embedded = false }: AiSystemsLabP
             </aside>
 
             <section className={styles.chatPanel} aria-label={text.chat}>
-              <header><span>{text.chat}</span><b>{remaining === null ? "∞" : remaining} {text.messagesLeft}</b></header>
+              <header><span>{text.chat}</span><b>{status?.chatAvailable ? `${remaining === null ? "∞" : remaining} ${text.messagesLeft}` : text.chatClosed}</b></header>
               <div className={styles.transcript} aria-live="polite">
                 {messages.map((message, index) => (
                   <article key={`${message.role}-${index}`} data-role={message.role}>
